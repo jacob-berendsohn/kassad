@@ -49,7 +49,7 @@ public class TypeSafeException : DecisionModelException
     /// <summary>HTTP status code, if the failure came from an HTTP response.</summary>
     public int? StatusCode { get; }
 
-    /// <summary>Raw response body, if any. Included for diagnostics; may contain the offending request field on 422.</summary>
+    /// <summary>Raw response body, if any. Included for diagnostics; names the offending request field on 422.</summary>
     public string? ResponseBody { get; }
 
     /// <inheritdoc cref="DecisionModelException(string)"/>
@@ -79,7 +79,12 @@ public sealed class TypeSafeAuthenticationException : TypeSafeException
     }
 }
 
-/// <summary>422. The request body failed validation. Never retried; fix the questions.</summary>
+/// <summary>
+/// 400 or 422. The request failed validation. 422 means the body did not match the schema and
+/// <see cref="TypeSafeException.ResponseBody"/> holds a <c>detail</c> array whose <c>loc</c> names the field;
+/// 400 means a rule the schema cannot express (unknown model, a question with neither instructions nor
+/// criteria) and <c>detail</c> is a string or an <c>{ error_type, message }</c> object. Never retried; fix the request.
+/// </summary>
 public sealed class TypeSafeRequestException : TypeSafeException
 {
     /// <inheritdoc cref="TypeSafeException(string, int, string)"/>

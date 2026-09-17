@@ -2,6 +2,9 @@ using System.Net;
 
 namespace Kassad.TypeSafe.Tests;
 
+// In the API-key collection because Missing_api_key_fails_at_construction_not_first_call clears TYPESAFE_API_KEY
+// for the process; it must not overlap a live test that is reading it.
+[Collection(ApiKeyEnvironmentCollection.Name)]
 public class TypeSafeClientTests
 {
     private const string Ok = """{ "model": "jev-latest", "answers": { "q": { "type": "noul", "noul": 0.5 } }, "usage": { "input_tokens": 5, "output_tokens": 1 } }""";
@@ -68,14 +71,33 @@ public class TypeSafeClientTests
     }
 
     [Fact]
-    public async Task Validation_failures_are_not_retried_and_carry_the_body()
+    public async Task Schema_failures_are_422_request_exceptions_not_retried_and_carry_the_body()
     {
-        var handler = new StubHandler().Enqueue(HttpStatusCode.UnprocessableEntity, """{"detail":"questions.q.criteria is malformed"}""");
+        // Recorded body: a pydantic-style "detail" array whose "loc" names the offending field.
+        var body = await File.ReadAllTextAsync(FixtureRequests.Resolve(FixtureRequests.NumericStateFile));
+        var handler = new StubHandler().Enqueue(HttpStatusCode.UnprocessableEntity, body);
         var client = StubHandler.Client(handler);
 
         var ex = await Assert.ThrowsAsync<TypeSafeRequestException>(() => client.EvaluateAsync(Request()));
 
-        Assert.Contains("criteria", ex.ResponseBody, StringComparison.Ordinal);
+        Assert.Equal(422, ex.StatusCode);
+        Assert.Contains("\"loc\"", ex.ResponseBody, StringComparison.Ordinal);
+        Assert.Contains("\"state\"", ex.ResponseBody, StringComparison.Ordinal);
+        Assert.Single(handler.Requests);
+    }
+
+    [Fact]
+    public async Task Semantic_failures_are_400_request_exceptions_not_retried_and_carry_the_body()
+    {
+        // Recorded body: a "detail" string. The API uses 400, not 422, for rules its schema cannot express.
+        var body = await File.ReadAllTextAsync(FixtureRequests.Resolve(FixtureRequests.EmptyInstructionsFile));
+        var handler = new StubHandler().Enqueue(HttpStatusCode.BadRequest, body);
+        var client = StubHandler.Client(handler);
+
+        var ex = await Assert.ThrowsAsync<TypeSafeRequestException>(() => client.EvaluateAsync(Request()));
+
+        Assert.Equal(400, ex.StatusCode);
+        Assert.Contains("instructions", ex.ResponseBody, StringComparison.Ordinal);
         Assert.Single(handler.Requests);
     }
 

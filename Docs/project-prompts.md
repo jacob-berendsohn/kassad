@@ -2,12 +2,12 @@
 
 | | |
 |---|---|
-| **Prompts generated** | `2026-09-17 14:47` (in-place refresh of the `2026-09-17 12:27` generation; see the refresh note below) |
-| **Roadmap last modified** | `2026-09-17` per the most recent `Docs/roadmap.md` changelog entry, the 0.4 end state (the changelog records dates only; the file was last committed `2026-09-17 14:30`, `838f4c6`) |
+| **Prompts generated** | `2026-09-17 15:34` (second in-place refresh of the `2026-09-17 12:27` generation; see the refresh note below) |
+| **Roadmap last modified** | `2026-09-17` per the most recent `Docs/roadmap.md` changelog entry, the 0.5 end state (the changelog records dates only; the file was last committed `2026-09-17 15:34`, `ba531c9`) |
 
 > **Staleness check.** If the roadmap's last-modified timestamp is newer than the prompts-generated timestamp, **this file is stale**. Regenerate it before executing any prompt; the prompts below may not reflect the current roadmap. Do not edit prompts here in place — fix the roadmap and regenerate.
 
-> **Refreshed in place 2026-09-17 14:47.** Between generation (`6892f84`) and `838f4c6` the roadmap changed only in its Prerequisites bullet (owner placeholder recorded as done) and its changelog (0.1–0.4 end states); no sub-phase Goal, Deliverables, Verification or Depends-on line changed, and every prompt below was re-checked verbatim against the roadmap. Header timestamps and the done markers on Prompts 0.1–0.4 are the only edits. The next roadmap change that touches a sub-phase field needs a full regeneration, not another refresh.
+> **Refreshed in place 2026-09-17 15:34** (first refresh 2026-09-17 14:47). Between generation (`6892f84`) and `ba531c9` the roadmap changed only in two Prerequisites bullets (owner placeholder, then the nuget.org policy, each recorded as done) and its changelog (0.1–0.5 end states); no sub-phase Goal, Deliverables, Verification or Depends-on line changed, and every prompt below was re-checked verbatim against the roadmap. Header timestamps and the done markers on Prompts 0.1–0.5 are the only edits since generation. The next roadmap change that touches a sub-phase field needs a full regeneration, not another refresh.
 
 ## How to use
 
@@ -152,6 +152,8 @@ Phases 0 → 1 → 2 are strictly sequential. Phase 3 and Phase 4 depend on Phas
 **Depends on:** 0.3 (so the surface being baselined is the one that survived live testing).
 
 #### Prompt 0.5 — First preview published by tag
+
+*Done 2026-09-17; end state recorded in the roadmap changelog. Do not re-run.*
 
 **Session setup.** Effort: `high` — crosses the GitHub ↔ nuget.org seam for the first time (OIDC Trusted Publishing, environments, secrets); the release path proven here is the one 4.5 reuses.
 

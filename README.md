@@ -14,7 +14,7 @@ Every policy for a stage is batched into one request, so ten checks cost one rou
 > **Status: pre-release scaffold.** The engine, policy format, and TypeSafe client are in place and
 > unit-tested; the middleware is functional for JSON bodies; the eval harness is not yet built.
 > Do not deploy in front of production traffic until the README has a numbers table. See
-> [`Docs/roadmap.md`](Docs/roadmap.md).
+> [`Docs/roadmap.md`](https://github.com/jacob-berendsohn/kassad/blob/main/Docs/roadmap.md).
 
 ## Why this exists
 
@@ -103,7 +103,7 @@ app.MapPost("/chat", (ChatRequest req, HttpContext http) =>
 });
 ```
 
-The full working example is in [`samples/Kassad.Sample.ChatApi`](samples/Kassad.Sample.ChatApi).
+The full working example is in [`samples/Kassad.Sample.ChatApi`](https://github.com/jacob-berendsohn/kassad/tree/main/samples/Kassad.Sample.ChatApi).
 
 ## Rules the engine enforces
 
@@ -157,9 +157,9 @@ probability. Read `SECURITY.md` before relying on it.
 
 ## Contributing
 
-See [`CONTRIBUTING.md`](CONTRIBUTING.md). The repo carries a `PROJECT_CONTEXT.md` and `Docs/roadmap.md`
+See [`CONTRIBUTING.md`](https://github.com/jacob-berendsohn/kassad/blob/main/CONTRIBUTING.md). The repo carries a `PROJECT_CONTEXT.md` and `Docs/roadmap.md`
 that AI coding agents (and humans) read before making changes.
 
 ## License
 
-Apache-2.0. See [`LICENSE`](LICENSE).
+Apache-2.0. See [`LICENSE`](https://github.com/jacob-berendsohn/kassad/blob/main/LICENSE).

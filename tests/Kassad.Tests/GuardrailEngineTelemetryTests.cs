@@ -136,7 +136,11 @@ public class GuardrailEngineTelemetryTests
     public async Task Budget_overrun_is_an_error_whose_latency_is_the_time_until_the_budget_fired()
     {
         using var telemetry = new TelemetryCapture();
-        var model = Benign(new FakeDecisionModel { Delay = TimeSpan.FromMilliseconds(500) });
+
+        // A delay the budget cannot lose a race against. This class runs in the parallel phase, and on the first CI
+        // run (ubuntu, net8.0, second 2 of the run, every class starting under coverage instrumentation) a 500 ms fake
+        // completed before the 50 ms budget's cancellation was observed, so only the budget can end this call.
+        var model = Benign(new FakeDecisionModel { Delay = TimeSpan.FromMinutes(1) });
         var engine = new GuardrailEngine(model, InboundSet(), Options.Create(new EvaluationOptions { Budget = TimeSpan.FromMilliseconds(50) }));
 
         var result = await engine.EvaluateAsync(Stage.Inbound, "hello");

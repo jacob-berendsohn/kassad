@@ -19,6 +19,7 @@ public class PolicyDocumentTests
     [InlineData("""{ "policies": null }""", "'policies'")]
     [InlineData("""{ "policies": {} }""", "policies")]
     [InlineData("""{ "policies": [ "not an object" ] }""", "policies")]
+    [InlineData("""{ "policies": [ null ] }""", "policies[0]: each entry must be a policy object")]
     public void File_must_be_valid_json_with_a_top_level_policies_array(string document, string expected) =>
         AssertRejected(document, expected);
 
@@ -72,6 +73,8 @@ public class PolicyDocumentTests
     [InlineData("""{ "id": "n", "stage": "inbound", "type": "noul", "instructions": "q", "criteria": [], "thresholds": { "block": 0.9 }, "on_error": "fail_closed" }""", "noul 'criteria' must be an object")]
     [InlineData("""{ "id": "n", "stage": "inbound", "type": "noul", "instructions": "q", "criteria": "yes or no", "thresholds": { "block": 0.9 }, "on_error": "fail_closed" }""", "noul 'criteria' must be an object")]
     [InlineData("""{ "id": "n", "stage": "inbound", "type": "noul", "instructions": "q", "criteria": 1, "thresholds": { "block": 0.9 }, "on_error": "fail_closed" }""", "noul 'criteria' must be an object")]
+    [InlineData("""{ "id": "n", "stage": "inbound", "type": "noul", "instructions": "q", "criteria": { "true": 1 }, "thresholds": { "block": 0.9 }, "on_error": "fail_closed" }""", "noul 'criteria' values for 'true' and 'false' must be strings")]
+    [InlineData("""{ "id": "n", "stage": "inbound", "type": "noul", "instructions": "q", "criteria": { "true": "t", "false": ["f"] }, "thresholds": { "block": 0.9 }, "on_error": "fail_closed" }""", "noul 'criteria' values for 'true' and 'false' must be strings")]
     public void Noul_criteria_must_be_an_object_of_true_and_false_descriptions(string policy, string expected) =>
         AssertRejected(Document(policy), expected);
 
@@ -82,6 +85,7 @@ public class PolicyDocumentTests
     [InlineData("""{ "id": "n", "stage": "inbound", "type": "noul", "instructions": "q", "criteria": { "true": "yes means" }, "thresholds": { "block": 0.9 }, "on_error": "fail_closed" }""", "yes means", null)]
     [InlineData("""{ "id": "n", "stage": "inbound", "type": "noul", "instructions": "q", "criteria": { "false": "no means" }, "thresholds": { "block": 0.9 }, "on_error": "fail_closed" }""", null, "no means")]
     [InlineData("""{ "id": "n", "stage": "inbound", "type": "noul", "instructions": "q", "criteria": { "true": "t", "false": "f" }, "thresholds": { "block": 0.9 }, "on_error": "fail_closed" }""", "t", "f")]
+    [InlineData("""{ "id": "n", "stage": "inbound", "type": "noul", "instructions": "q", "criteria": { "true": null, "false": "f" }, "thresholds": { "block": 0.9 }, "on_error": "fail_closed" }""", null, "f")]
     public void Noul_criteria_are_optional_and_either_key_may_be_omitted(string policy, string? expectedTrue, string? expectedFalse)
     {
         var policyObject = Assert.Single(PolicySet.FromJson(Document(policy)).All);
@@ -97,6 +101,7 @@ public class PolicyDocumentTests
     [InlineData("""{ "id": "c", "stage": "inbound", "type": "choice", "instructions": "q", "criteria": "a", "actions": { "a": { "action": "block" } }, "on_error": "fail_open" }""", "choice 'criteria' must be an object")]
     [InlineData("""{ "id": "c", "stage": "inbound", "type": "choice", "instructions": "q", "criteria": {}, "actions": { "a": { "action": "block" } }, "on_error": "fail_open" }""", "choice 'criteria' needs at least two options")]
     [InlineData("""{ "id": "c", "stage": "inbound", "type": "choice", "instructions": "q", "criteria": { "a": "only one" }, "actions": { "a": { "action": "block" } }, "on_error": "fail_open" }""", "choice 'criteria' needs at least two options")]
+    [InlineData("""{ "id": "c", "stage": "inbound", "type": "choice", "instructions": "q", "criteria": { "a": "1", "b": 2 }, "actions": { "a": { "action": "block" } }, "on_error": "fail_open" }""", "choice 'criteria' description for option 'b' must be a string or null")]
     public void Choice_criteria_must_be_an_object_of_at_least_two_options(string policy, string expected) =>
         AssertRejected(Document(policy), expected);
 
@@ -118,6 +123,8 @@ public class PolicyDocumentTests
     [InlineData("""{ "id": "s", "stage": "outbound", "type": "score", "instructions": "q", "criteria": "low", "thresholds": { "block": 1 }, "on_error": "fail_closed" }""", "score 'criteria' must be an ordered array")]
     [InlineData("""{ "id": "s", "stage": "outbound", "type": "score", "instructions": "q", "criteria": [], "thresholds": { "block": 1 }, "on_error": "fail_closed" }""", "score 'criteria' needs at least two levels")]
     [InlineData("""{ "id": "s", "stage": "outbound", "type": "score", "instructions": "q", "criteria": ["only"], "thresholds": { "block": 1 }, "on_error": "fail_closed" }""", "score 'criteria' needs at least two levels")]
+    [InlineData("""{ "id": "s", "stage": "outbound", "type": "score", "instructions": "q", "criteria": [1, 2], "thresholds": { "block": 1 }, "on_error": "fail_closed" }""", "score 'criteria' must contain only strings")]
+    [InlineData("""{ "id": "s", "stage": "outbound", "type": "score", "instructions": "q", "criteria": [null, "high"], "thresholds": { "block": 1 }, "on_error": "fail_closed" }""", "score 'criteria' must contain only strings")]
     public void Score_criteria_must_be_an_array_of_at_least_two_strings(string policy, string expected) =>
         AssertRejected(Document(policy), expected);
 

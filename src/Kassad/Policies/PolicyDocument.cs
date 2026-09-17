@@ -21,7 +21,7 @@ internal sealed class PolicyDocument
     [JsonPropertyName("$schema")]
     public string? Schema { get; set; }
 
-    public List<PolicyEntry>? Policies { get; set; }
+    public List<PolicyEntry?>? Policies { get; set; }
 
     public static IReadOnlyList<Policy> Parse(string json)
     {
@@ -46,6 +46,12 @@ internal sealed class PolicyDocument
         for (var i = 0; i < document.Policies.Count; i++)
         {
             var entry = document.Policies[i];
+            if (entry is null)
+            {
+                errors.Add($"policies[{i}]: each entry must be a policy object.");
+                continue;
+            }
+
             var label = string.IsNullOrWhiteSpace(entry.Id) ? $"policies[{i}]" : entry.Id;
             var errorsBefore = errors.Count;
 
@@ -126,9 +132,13 @@ internal sealed class PolicyDocument
                 NoulCriteria? noulCriteria = null;
                 if (criteria is { ValueKind: JsonValueKind.Object } c)
                 {
-                    noulCriteria = new NoulCriteria(
-                        c.TryGetProperty("true", out var t) ? t.GetString() : null,
-                        c.TryGetProperty("false", out var f) ? f.GetString() : null);
+                    if (!TryReadOptionalString(c, "true", out var yes) || !TryReadOptionalString(c, "false", out var no))
+                    {
+                        errors.Add($"{label}: noul 'criteria' values for 'true' and 'false' must be strings.");
+                        return null;
+                    }
+
+                    noulCriteria = new NoulCriteria(yes, no);
                 }
 
                 return new NoulQuestion(instructions, noulCriteria);
@@ -143,7 +153,13 @@ internal sealed class PolicyDocument
                 var map = new Dictionary<string, string?>(StringComparer.Ordinal);
                 foreach (var property in options.EnumerateObject())
                 {
-                    map[property.Name] = property.Value.ValueKind == JsonValueKind.String ? property.Value.GetString() : null;
+                    if (property.Value.ValueKind is not (JsonValueKind.String or JsonValueKind.Null))
+                    {
+                        errors.Add($"{label}: choice 'criteria' description for option '{property.Name}' must be a string or null.");
+                        return null;
+                    }
+
+                    map[property.Name] = property.Value.GetString();
                 }
 
                 if (map.Count < 2)
@@ -161,8 +177,19 @@ internal sealed class PolicyDocument
                     return null;
                 }
 
-                var levels = levelsEl.EnumerateArray().Select(l => l.GetString() ?? string.Empty).ToArray();
-                if (levels.Length < 2)
+                var levels = new List<string>();
+                foreach (var level in levelsEl.EnumerateArray())
+                {
+                    if (level.ValueKind != JsonValueKind.String)
+                    {
+                        errors.Add($"{label}: score 'criteria' must contain only strings (level {levels.Count} is not a string).");
+                        return null;
+                    }
+
+                    levels.Add(level.GetString()!);
+                }
+
+                if (levels.Count < 2)
                 {
                     errors.Add($"{label}: score 'criteria' needs at least two levels.");
                     return null;
@@ -178,6 +205,27 @@ internal sealed class PolicyDocument
                 errors.Add($"{label}: unknown type '{entry.Type}' (expected noul, choice, score).");
                 return null;
         }
+    }
+
+    /// <summary>
+    /// Reads an optional string property of <paramref name="element"/>. Absent and <c>null</c> both read as <c>null</c>;
+    /// any other non-string value is a shape error and returns false.
+    /// </summary>
+    private static bool TryReadOptionalString(JsonElement element, string name, out string? value)
+    {
+        value = null;
+        if (!element.TryGetProperty(name, out var property) || property.ValueKind == JsonValueKind.Null)
+        {
+            return true;
+        }
+
+        if (property.ValueKind != JsonValueKind.String)
+        {
+            return false;
+        }
+
+        value = property.GetString();
+        return true;
     }
 }
 

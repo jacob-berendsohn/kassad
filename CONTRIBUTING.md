@@ -14,7 +14,9 @@ Thanks for looking. A few things that will save us both a round trip.
 
 - Warnings are errors. Nullable is on. `.editorconfig` code-style rules are enforced in build.
 - Every public member has XML docs (`CS1591` is an error in `src/`).
-- Public API changes go through `PublicAPI.Unshipped.txt` in the affected project.
+- Public API changes go through `PublicAPI.Unshipped.txt` in the affected project. Regenerate its entries with
+  `dotnet format analyzers src/<Project>/<Project>.csproj --diagnostics RS0016` (per project; a solution-level run
+  updates only one of them), then review the diff before committing.
 - Root-cause fixes only. A PR that adds a null check where a null should be impossible will be asked
   to find out why the null is there.
 - Tests: unit tests must not need network or an API key. Live tests are marked `[Trait("Category", "Live")]`

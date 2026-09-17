@@ -1,1 +1,39 @@
 #nullable enable
+const Kassad.TypeSafe.TypeSafeClient.HttpClientName = "Kassad.TypeSafe" -> string!
+const Kassad.TypeSafe.TypeSafeClientOptions.ApiKeyEnvironmentVariable = "TYPESAFE_API_KEY" -> string!
+const Kassad.TypeSafe.TypeSafeClientOptions.DefaultBaseAddress = "https://api.typesafe.ai/" -> string!
+const Kassad.TypeSafe.TypeSafeClientOptions.DefaultModel = "jev-latest" -> string!
+Kassad.TypeSafe.TypeSafeAuthenticationException
+Kassad.TypeSafe.TypeSafeAuthenticationException.TypeSafeAuthenticationException(string! message, int statusCode, string? responseBody) -> void
+Kassad.TypeSafe.TypeSafeClient
+Kassad.TypeSafe.TypeSafeClient.EvaluateAsync(Kassad.DecisionRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Kassad.DecisionResponse!>!
+Kassad.TypeSafe.TypeSafeClient.Name.get -> string!
+Kassad.TypeSafe.TypeSafeClient.TypeSafeClient(System.Net.Http.HttpClient! httpClient, Kassad.TypeSafe.TypeSafeClientOptions! options) -> void
+Kassad.TypeSafe.TypeSafeClient.TypeSafeClient(System.Net.Http.IHttpClientFactory! httpClientFactory, Microsoft.Extensions.Options.IOptions<Kassad.TypeSafe.TypeSafeClientOptions!>! options) -> void
+Kassad.TypeSafe.TypeSafeClientOptions
+Kassad.TypeSafe.TypeSafeClientOptions.ApiKey.get -> string?
+Kassad.TypeSafe.TypeSafeClientOptions.ApiKey.set -> void
+Kassad.TypeSafe.TypeSafeClientOptions.BaseAddress.get -> System.Uri!
+Kassad.TypeSafe.TypeSafeClientOptions.BaseAddress.set -> void
+Kassad.TypeSafe.TypeSafeClientOptions.MaxRetries.get -> int
+Kassad.TypeSafe.TypeSafeClientOptions.MaxRetries.set -> void
+Kassad.TypeSafe.TypeSafeClientOptions.MaxRetryDelay.get -> System.TimeSpan
+Kassad.TypeSafe.TypeSafeClientOptions.MaxRetryDelay.set -> void
+Kassad.TypeSafe.TypeSafeClientOptions.Model.get -> string!
+Kassad.TypeSafe.TypeSafeClientOptions.Model.set -> void
+Kassad.TypeSafe.TypeSafeClientOptions.Timeout.get -> System.TimeSpan
+Kassad.TypeSafe.TypeSafeClientOptions.Timeout.set -> void
+Kassad.TypeSafe.TypeSafeClientOptions.TypeSafeClientOptions() -> void
+Kassad.TypeSafe.TypeSafeException
+Kassad.TypeSafe.TypeSafeException.ResponseBody.get -> string?
+Kassad.TypeSafe.TypeSafeException.StatusCode.get -> int?
+Kassad.TypeSafe.TypeSafeException.TypeSafeException(string! message) -> void
+Kassad.TypeSafe.TypeSafeException.TypeSafeException(string! message, int statusCode, string? responseBody) -> void
+Kassad.TypeSafe.TypeSafeException.TypeSafeException(string! message, System.Exception? innerException) -> void
+Kassad.TypeSafe.TypeSafeRateLimitException
+Kassad.TypeSafe.TypeSafeRateLimitException.RetryAfter.get -> System.TimeSpan?
+Kassad.TypeSafe.TypeSafeRateLimitException.TypeSafeRateLimitException(string! message, int statusCode, string? responseBody, System.TimeSpan? retryAfter) -> void
+Kassad.TypeSafe.TypeSafeRequestException
+Kassad.TypeSafe.TypeSafeRequestException.TypeSafeRequestException(string! message, int statusCode, string? responseBody) -> void
+Kassad.TypeSafe.TypeSafeServiceCollectionExtensions
+static Kassad.TypeSafe.TypeSafeServiceCollectionExtensions.AddTypeSafe(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Kassad.TypeSafe.TypeSafeClientOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!

@@ -13,7 +13,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
-    <AnalysisLevel>latest</AnalysisLevel> <!-- raise to latest-recommended in roadmap 0.4 once the surface is baselined -->
+    <AnalysisLevel>latest-recommended</AnalysisLevel> <!-- raised from latest in roadmap 0.4; every diagnostic it added was fixed or suppressed with a reason in .editorconfig -->
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <Deterministic>true</Deterministic>
     <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>

@@ -107,20 +107,21 @@ public sealed class GuardrailEngine : IGuardrailEngine
                 _ => LogLevel.Warning,
             };
 
-            if (!_logger.IsEnabled(level))
+            if (_logger.IsEnabled(level))
             {
-                continue;
+                _logger.Log(
+                    level,
+                    "Kassad {Stage} {PolicyId} → {Action} (value={Value} confidence={Confidence} fromError={FromError}): {Reason}",
+                    v.Stage, v.PolicyId, v.Action, v.Value, v.Confidence, v.FromError, v.Reason);
             }
-
-            _logger.Log(
-                level,
-                "Kassad {Stage} {PolicyId} → {Action} (value={Value} confidence={Confidence} fromError={FromError}): {Reason}",
-                v.Stage, v.PolicyId, v.Action, v.Value, v.Confidence, v.FromError, v.Reason);
         }
 
-        _logger.LogInformation(
-            "Kassad {Stage} outcome {Outcome} in {LatencyMs}ms ({PolicyCount} policies, {InputTokens} in / {OutputTokens} out)",
-            result.Stage, result.Outcome, result.ModelLatency.TotalMilliseconds, result.Verdicts.Count,
-            result.Usage?.InputTokens, result.Usage?.OutputTokens);
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation(
+                "Kassad {Stage} outcome {Outcome} in {LatencyMs}ms ({PolicyCount} policies, {InputTokens} in / {OutputTokens} out)",
+                result.Stage, result.Outcome, result.ModelLatency.TotalMilliseconds, result.Verdicts.Count,
+                result.Usage?.InputTokens, result.Usage?.OutputTokens);
+        }
     }
 }

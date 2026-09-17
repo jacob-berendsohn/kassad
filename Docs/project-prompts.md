@@ -2,12 +2,12 @@
 
 | | |
 |---|---|
-| **Prompts generated** | `2026-09-17 17:28` (fifth in-place refresh of the `2026-09-17 12:27` generation; see the refresh note below) |
-| **Roadmap last modified** | `2026-09-17` per the most recent `Docs/roadmap.md` changelog entry, the 1.2 end state (the changelog records dates only; the file was last committed `2026-09-17 17:27`, `6032890`) |
+| **Prompts generated** | `2026-09-17 17:49` (sixth in-place refresh of the `2026-09-17 12:27` generation; see the refresh note below) |
+| **Roadmap last modified** | `2026-09-17` per the most recent `Docs/roadmap.md` changelog entry, the 1.3 end state (the changelog records dates only; the file was last committed `2026-09-17 17:49`, `463bb11`) |
 
 > **Staleness check.** If the roadmap's last-modified timestamp is newer than the prompts-generated timestamp, **this file is stale**. Regenerate it before executing any prompt; the prompts below may not reflect the current roadmap. Do not edit prompts here in place — fix the roadmap and regenerate.
 
-> **Refreshed in place 2026-09-17 17:28** (earlier refreshes 2026-09-17 14:47, 15:34, 16:43 and 17:17). Between generation (`6892f84`) and `6032890` the roadmap changed only in two Prerequisites bullets (owner placeholder, then the nuget.org policy, each recorded as done) and its changelog (0.1–0.5, 1.1 and 1.2 end states); the steps from `9a48f5f` to `0adea7b` and on to `6032890` are the single 1.2 changelog line and a correction inside it (the first CI measurement and the test isolation). No sub-phase Goal, Deliverables, Verification or Depends-on line changed, and a script re-checked every prompt below verbatim against the roadmap (21 sub-phases, 0 differences). Header timestamps and the done markers on Prompts 0.1–0.5, 1.1 and 1.2 are the only edits since generation. The next roadmap change that touches a sub-phase field needs a full regeneration, not another refresh.
+> **Refreshed in place 2026-09-17 17:49** (earlier refreshes 2026-09-17 14:47, 15:34, 16:43, 17:17 and 17:28). Between generation (`6892f84`) and `463bb11` the roadmap changed only in two Prerequisites bullets (owner placeholder, then the nuget.org policy, each recorded as done) and its changelog (0.1–0.5 and 1.1–1.3 end states); the step from `6032890` to `463bb11` is the single 1.3 changelog line, which also closes Phase 1. No sub-phase Goal, Deliverables, Verification or Depends-on line changed, and a script re-checked every prompt below verbatim against the roadmap (21 sub-phases, 0 differences). Header timestamps and the done markers on Prompts 0.1–0.5 and 1.1–1.3 are the only edits since generation. The next roadmap change that touches a sub-phase field needs a full regeneration, not another refresh.
 
 ## How to use
 
@@ -245,6 +245,8 @@ Phases 0 → 1 → 2 are strictly sequential. Phase 3 and Phase 4 depend on Phas
 **Depends on:** 0.2.
 
 #### Prompt 1.3 — Sample runs against the live API
+
+*Done 2026-09-17; end state recorded in the roadmap changelog. Do not re-run.*
 
 **Session setup.** Effort: `medium` — exercises already-built components against the live API; deliverables are small fixes plus a `samples/README.md`, and verification is two `curl` calls with known expected statuses.
 

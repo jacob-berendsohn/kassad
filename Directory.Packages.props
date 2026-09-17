@@ -43,15 +43,19 @@
   </ItemGroup>
 
   <!--
-    Test host for Kassad.AspNetCore.Tests (roadmap 2.1). Pinned per target framework like Microsoft.Extensions.*:
-    each release line of Microsoft.AspNetCore.Mvc.Testing targets exactly one framework.
+    Test host for Kassad.AspNetCore.Tests (roadmap 2.1) and the FakeLogger its handler tests assert log lines
+    against (roadmap 2.2). Pinned per target framework like Microsoft.Extensions.*: each release line of
+    Microsoft.AspNetCore.Mvc.Testing targets exactly one framework, and the 10.x line of
+    Microsoft.Extensions.Diagnostics.Testing would drag the net8.0 test build past its 8.0.x floors.
     Latest stable releases as of 2026-09-17.
   -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
     <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.31" />
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.Testing" Version="8.10.0" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' != 'net8.0'">
     <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.Testing" Version="10.10.0" />
   </ItemGroup>
 
 </Project>

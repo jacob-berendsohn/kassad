@@ -61,6 +61,75 @@ public class PolicySetTests
     }
 
     [Fact]
+    public void FromFile_reads_and_validates_the_document()
+    {
+        var path = Path.GetTempFileName();
+        try
+        {
+            File.WriteAllText(path, """{ "policies": [ { "id": "n", "stage": "inbound", "type": "noul", "instructions": "q", "thresholds": { "block": 0.9 }, "on_error": "fail_closed" } ] }""");
+
+            var set = PolicySet.FromFile(path);
+
+            Assert.Equal("n", Assert.Single(set.All).Id);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void The_sample_policy_file_loads()
+    {
+        // tests/Kassad.Tests/bin/<Configuration>/<tfm>/ → repo root; the sample file is the reference policy document.
+        var path = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "samples", "Kassad.Sample.ChatApi", "kassad.policies.json"));
+
+        var set = PolicySet.FromFile(path);
+
+        Assert.Equal(4, set.All.Length);
+        Assert.Equal(2, set.ForStage(Stage.Inbound).Length);
+        Assert.Equal(2, set.ForStage(Stage.Outbound).Length);
+    }
+
+    [Fact]
+    public void Null_and_blank_inputs_are_rejected_up_front()
+    {
+        Assert.Throws<ArgumentNullException>(() => PolicySet.FromPolicies(null!));
+        Assert.Throws<ArgumentNullException>(() => PolicySet.FromJson(null!));
+        Assert.Throws<ArgumentException>(() => PolicySet.FromFile(" "));
+    }
+
+    [Fact]
+    public void Empty_policy_set_is_rejected()
+    {
+        var ex = Assert.Throws<PolicyValidationException>(() => PolicySet.FromPolicies([]));
+
+        Assert.Equal("Policy set contains no policies.", Assert.Single(ex.Errors));
+    }
+
+    [Theory]
+    [InlineData((Stage)7, ErrorPolicy.FailClosed, "unknown stage '7'")]
+    [InlineData(Stage.Inbound, (ErrorPolicy)9, "on_error must be fail_open or fail_closed")]
+    public void Undefined_enum_values_are_rejected(Stage stage, ErrorPolicy onError, string expected)
+    {
+        var bad = TestPolicies.Injection() with { Stage = stage, OnError = onError };
+
+        var ex = Assert.Throws<PolicyValidationException>(() => PolicySet.FromPolicies([bad]));
+
+        Assert.Contains(ex.Errors, e => e.Contains(expected, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Unknown_question_types_are_rejected()
+    {
+        var bad = TestPolicies.Injection() with { Question = new UnknownQuestion("q"), Thresholds = null };
+
+        var ex = Assert.Throws<PolicyValidationException>(() => PolicySet.FromPolicies([bad]));
+
+        Assert.Contains(ex.Errors, e => e.Contains("unsupported question type UnknownQuestion", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Json_document_round_trips_all_three_question_types()
     {
         const string json = """
@@ -87,4 +156,7 @@ public class PolicySetTests
         Assert.Equal(Stage.ToolCall, set.All[2].Stage);
         Assert.Equal(0.5, set.All[2].MinConfidence);
     }
+
+    /// <summary>A question type the validator has never heard of; exercises its defensive default branch.</summary>
+    private sealed record UnknownQuestion(string Instructions) : Question(Instructions);
 }

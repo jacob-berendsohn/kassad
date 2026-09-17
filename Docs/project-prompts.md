@@ -2,12 +2,12 @@
 
 | | |
 |---|---|
-| **Prompts generated** | `2026-09-17 19:13` (eighth in-place refresh of the `2026-09-17 12:27` generation; see the refresh note below) |
-| **Roadmap last modified** | `2026-09-17` per the two most recent `Docs/roadmap.md` changelog entries, the 3.1 and 2.1 end states (the changelog records dates only; the lines were committed `2026-09-17 18:22`, `8450d61`, on `main` and `2026-09-17 18:26`, `e4a2b35`, on this branch, and combined by the merge) |
+| **Prompts generated** | `2026-09-17 19:47` (ninth in-place refresh of the `2026-09-17 12:27` generation; see the refresh note below) |
+| **Roadmap last modified** | `2026-09-17` per the most recent `Docs/roadmap.md` changelog entry, the 3.3 end state (the changelog records dates only; the line was committed `2026-09-17 19:46`, `69d238b`, on this branch) |
 
 > **Staleness check.** If the roadmap's last-modified timestamp is newer than the prompts-generated timestamp, **this file is stale**. Regenerate it before executing any prompt; the prompts below may not reflect the current roadmap. Do not edit prompts here in place — fix the roadmap and regenerate.
 
-> **Refreshed in place 2026-09-17 19:13** (earlier refreshes 2026-09-17 14:47, 15:34, 16:43, 17:17, 17:28 and 17:49, then 18:23 on the 3.1 branch and 18:26 on the 2.1 branch, which ran in parallel). Between generation (`6892f84`) and the merge of `main` (`681fcb3`, PR #18) and the build-fix branch (`9bdcdc1`, PR #20) into this branch, the roadmap changed only in two Prerequisites bullets (owner placeholder, then the nuget.org policy, each recorded as done) and its changelog (0.1–0.5, 1.1–1.3, 3.1 and 2.1 end states); the steps since `463bb11` are the single 3.1 changelog line (`8450d61`) and the single 2.1 changelog line (`e4a2b35`), written on parallel branches and combined here. No sub-phase Goal, Deliverables, Verification or Depends-on line changed, and a script re-checked every prompt below verbatim against the roadmap (21 sub-phases, 0 differences). Header timestamps and the done markers on Prompts 0.1–0.5, 1.1–1.3, 2.1 and 3.1 are the only edits since generation. The next roadmap change that touches a sub-phase field needs a full regeneration, not another refresh.
+> **Refreshed in place 2026-09-17 19:47** (earlier refreshes 2026-09-17 14:47, 15:34, 16:43, 17:17, 17:28 and 17:49, then 18:23 on the 3.1 branch, 18:26 on the 2.1 branch and 19:13 after those two merged). Between generation (`6892f84`) and `69d238b` on this branch, the roadmap changed only in two Prerequisites bullets (owner placeholder, then the nuget.org policy, each recorded as done) and its changelog (0.1–0.5, 1.1–1.3, 3.1, 2.1 and 3.3 end states); the step since `main` (`194f9ae`, after PRs #19 and #20) is the single 3.3 changelog line (`69d238b`), written in a worktree while the 2.2 session used the main checkout. No sub-phase Goal, Deliverables, Verification or Depends-on line changed, and a script re-checked every prompt below verbatim against the roadmap (21 sub-phases, 0 differences). Header timestamps and the done markers on Prompts 0.1–0.5, 1.1–1.3, 2.1, 3.1 and 3.3 are the only edits since generation. The next roadmap change that touches a sub-phase field needs a full regeneration, not another refresh.
 
 ## How to use
 
@@ -446,6 +446,8 @@ Phases 0 → 1 → 2 are strictly sequential. Phase 3 and Phase 4 depend on Phas
 **Depends on:** 2.2.
 
 #### Prompt 3.3 — OpenTelemetry traces and metrics
+
+*Done 2026-09-17; end state recorded in the roadmap changelog. Do not re-run.*
 
 *Can run in parallel with Prompt 3.1 and with Phase 2; needs only 1.2.*
 

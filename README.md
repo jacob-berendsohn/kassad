@@ -64,7 +64,7 @@ builder.Services.AddHttpClient("openai", c => c.BaseAddress = new("https://api.o
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/__GITHUB_OWNER__/kassad/main/schemas/kassad-policies.schema.json",
+  "$schema": "https://raw.githubusercontent.com/jacob-berendsohn/kassad/main/schemas/kassad-policies.schema.json",
   "policies": [
     {
       "id": "prompt_injection",

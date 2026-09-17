@@ -22,5 +22,6 @@ Versions come from git tags via MinVer; nothing here is hand-numbered until a ta
 
 ### Fixed
 - `Kassad`: `PolicySet.FromJson` and `PolicySet.FromFile` now throw `PolicyValidationException` for every malformed document. An `actions` entry without an `action` (or set to `null`), a `null` entry in `policies`, a non-string `true`/`false` in noul `criteria`, or a non-string level in score `criteria` used to escape as `InvalidOperationException` or `NullReferenceException` after the error had already been recorded. A non-string choice description was silently read as `null` and a `null` score level as an empty string; both are now rejected, as the spec and schema already required.
+- `Kassad.AspNetCore`: rejections from `UseKassadInbound()` now carry `Content-Type: application/problem+json`, as `Docs/specs/rejection-response.md` states. The two-argument `WriteAsJsonAsync` overload had been resetting the header to `application/json; charset=utf-8` after the middleware set it, so every 403 and 413 went out as plain JSON.
 
 [Unreleased]: https://github.com/jacob-berendsohn/kassad/compare/HEAD...HEAD

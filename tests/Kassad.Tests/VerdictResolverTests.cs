@@ -74,4 +74,20 @@ public class VerdictResolverTests
         Assert.True(closed.FromError);
         Assert.Null(closed.Answer);
     }
+
+    [Fact]
+    public void Budget_overrun_honors_fail_closed_and_fail_open_and_names_the_budget()
+    {
+        var budget = TimeSpan.FromMilliseconds(50);
+
+        var closed = VerdictResolver.FromBudgetExceeded(TestPolicies.Injection(ErrorPolicy.FailClosed), budget);
+        var open = VerdictResolver.FromBudgetExceeded(TestPolicies.Injection(ErrorPolicy.FailOpen), budget);
+
+        Assert.Equal(VerdictAction.Block, closed.Action);
+        Assert.Equal(VerdictAction.Allow, open.Action);
+        Assert.True(closed.FromError);
+        Assert.Null(closed.Answer);
+        Assert.Equal("budget exceeded (50 ms); fail_closed → Block", closed.Reason);
+        Assert.Equal("budget exceeded (50 ms); fail_open → Allow", open.Reason);
+    }
 }

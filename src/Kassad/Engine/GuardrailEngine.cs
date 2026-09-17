@@ -2,6 +2,7 @@ using System.Diagnostics;
 using Kassad.Policies;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 
 namespace Kassad.Engine;
 
@@ -9,18 +10,34 @@ namespace Kassad.Engine;
 /// Default <see cref="IGuardrailEngine"/>. Batches every policy for a stage into a single
 /// <see cref="DecisionRequest"/> (questions are evaluated independently and in parallel upstream, so
 /// adding policies does not add round trips), then resolves each answer with <see cref="VerdictResolver"/>.
+/// An <see cref="EvaluationOptions.Budget"/>, when set, caps how long the model call may take.
 /// </summary>
 public sealed class GuardrailEngine : IGuardrailEngine
 {
     private readonly IDecisionModel _model;
     private readonly PolicySet _policies;
+    private readonly TimeSpan? _budget;
     private readonly ILogger<GuardrailEngine> _logger;
 
     /// <summary>Create an engine over a decision model and a validated policy set.</summary>
-    public GuardrailEngine(IDecisionModel model, PolicySet policies, ILogger<GuardrailEngine>? logger = null)
+    /// <param name="model">The decision model every stage is evaluated against.</param>
+    /// <param name="policies">The validated policies; the engine picks the ones for the requested stage on each call.</param>
+    /// <param name="options">
+    /// Evaluation settings. <c>null</c> means the defaults: no budget. Outside DI, pass
+    /// <c>Options.Create(new EvaluationOptions { Budget = ... })</c>.
+    /// </param>
+    /// <param name="logger">Receives one line per verdict and one per outcome; <c>null</c> disables logging.</param>
+    /// <exception cref="ArgumentOutOfRangeException"><see cref="EvaluationOptions.Budget"/> is set but not positive.</exception>
+    public GuardrailEngine(IDecisionModel model, PolicySet policies, IOptions<EvaluationOptions>? options = null, ILogger<GuardrailEngine>? logger = null)
     {
         _model = model ?? throw new ArgumentNullException(nameof(model));
         _policies = policies ?? throw new ArgumentNullException(nameof(policies));
+        _budget = options?.Value.Budget;
+        if (!EvaluationOptions.IsValidBudget(_budget))
+        {
+            throw new ArgumentOutOfRangeException(nameof(options), _budget, EvaluationOptions.BudgetRule);
+        }
+
         _logger = logger ?? NullLogger<GuardrailEngine>.Instance;
     }
 
@@ -44,17 +61,29 @@ public sealed class GuardrailEngine : IGuardrailEngine
         var questions = policies.ToDictionary(p => p.Id, p => p.Question, StringComparer.Ordinal);
         var request = new DecisionRequest(state, questions);
 
+        // The budget rides on a token linked to the caller's, so the model sees a single token while the
+        // engine can still tell afterwards which one fired: the caller's cancellation propagates, the
+        // budget's becomes error verdicts.
+        using var budgetCts = _budget is { } budget ? StartBudget(budget, cancellationToken) : null;
+
         var stopwatch = Stopwatch.StartNew();
         DecisionResponse? response = null;
         Exception? failure = null;
+        var budgetExceeded = false;
 
         try
         {
-            response = await _model.EvaluateAsync(request, cancellationToken).ConfigureAwait(false);
+            response = await _model.EvaluateAsync(request, budgetCts?.Token ?? cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             throw;
+        }
+        catch (Exception) when (budgetCts is { IsCancellationRequested: true } && !cancellationToken.IsCancellationRequested)
+        {
+            // Once the budget has fired, whatever the model threw (its OperationCanceledException, or a wrapper
+            // around it) is the budget's doing.
+            budgetExceeded = true;
         }
         catch (Exception ex)
         {
@@ -66,12 +95,7 @@ public sealed class GuardrailEngine : IGuardrailEngine
         var verdicts = new Verdict[policies.Length];
         for (var i = 0; i < policies.Length; i++)
         {
-            var policy = policies[i];
-            verdicts[i] = failure is not null
-                ? VerdictResolver.FromError(policy, failure)
-                : response!.Answers.TryGetValue(policy.Id, out var answer)
-                    ? VerdictResolver.Resolve(policy, answer)
-                    : VerdictResolver.FromError(policy, new DecisionModelException($"No answer returned for policy '{policy.Id}'."));
+            verdicts[i] = Resolve(policies[i], response, failure, budgetExceeded);
         }
 
         var outcome = verdicts.Max(v => v.Action);
@@ -82,15 +106,49 @@ public sealed class GuardrailEngine : IGuardrailEngine
             Outcome = outcome,
             ModelLatency = stopwatch.Elapsed,
             Usage = response?.Usage,
+            BudgetExceeded = budgetExceeded,
         };
 
         Log(result, failure);
         return result;
     }
 
+    private static CancellationTokenSource StartBudget(TimeSpan budget, CancellationToken callerToken)
+    {
+        var cts = CancellationTokenSource.CreateLinkedTokenSource(callerToken);
+        cts.CancelAfter(budget);
+        return cts;
+    }
+
+    private Verdict Resolve(Policy policy, DecisionResponse? response, Exception? failure, bool budgetExceeded)
+    {
+        if (budgetExceeded)
+        {
+            return VerdictResolver.FromBudgetExceeded(policy, _budget.GetValueOrDefault());
+        }
+
+        if (failure is not null)
+        {
+            return VerdictResolver.FromError(policy, failure);
+        }
+
+        return response!.Answers.TryGetValue(policy.Id, out var answer)
+            ? VerdictResolver.Resolve(policy, answer)
+            : VerdictResolver.FromError(policy, new DecisionModelException($"No answer returned for policy '{policy.Id}'."));
+    }
+
     private void Log(StageResult result, Exception? failure)
     {
-        if (failure is not null)
+        if (result.BudgetExceeded)
+        {
+            if (_logger.IsEnabled(LogLevel.Warning))
+            {
+                _logger.LogWarning(
+                    "Kassad {Stage}: decision model {Model} did not answer within the {BudgetMs}ms budget (gave up after {LatencyMs}ms); error policies applied, outcome {Outcome}",
+                    result.Stage, _model.Name, _budget.GetValueOrDefault().TotalMilliseconds, result.ModelLatency.TotalMilliseconds, result.Outcome);
+            }
+        }
+        else if (failure is not null)
         {
             _logger.LogWarning(
                 failure,

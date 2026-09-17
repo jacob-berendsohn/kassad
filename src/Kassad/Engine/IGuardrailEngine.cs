@@ -5,7 +5,8 @@ public interface IGuardrailEngine
 {
     /// <summary>
     /// Run all policies registered for <paramref name="stage"/> against <paramref name="state"/>.
-    /// Never throws for model failures; those become verdicts via each policy's <see cref="ErrorPolicy"/>.
+    /// Never throws for model failures; those become verdicts via each policy's <see cref="ErrorPolicy"/>, as does a
+    /// model call cut off by the engine's budget (<see cref="StageResult.BudgetExceeded"/>).
     /// Throws <see cref="OperationCanceledException"/> only when <paramref name="cancellationToken"/> is signaled.
     /// </summary>
     Task<StageResult> EvaluateAsync(Stage stage, object state, CancellationToken cancellationToken = default);

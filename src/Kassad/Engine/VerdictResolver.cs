@@ -27,7 +27,7 @@ public static class VerdictResolver
         ArgumentNullException.ThrowIfNull(policy);
         ArgumentNullException.ThrowIfNull(error);
 
-        var action = policy.OnError == ErrorPolicy.FailClosed ? VerdictAction.Block : VerdictAction.Allow;
+        var action = OnError(policy);
         return new Verdict
         {
             PolicyId = policy.Id,
@@ -35,6 +35,26 @@ public static class VerdictResolver
             Action = action,
             Answer = null,
             Reason = $"model error ({error.GetType().Name}: {error.Message}); {Describe(policy.OnError)} → {action}",
+            FromError = true,
+        };
+    }
+
+    /// <summary>
+    /// Verdict when the engine's <see cref="EvaluationOptions.Budget"/> ran out before the model answered.
+    /// Applies the policy's <see cref="ErrorPolicy"/> exactly like <see cref="FromError"/>; only the reason differs.
+    /// </summary>
+    public static Verdict FromBudgetExceeded(Policy policy, TimeSpan budget)
+    {
+        ArgumentNullException.ThrowIfNull(policy);
+
+        var action = OnError(policy);
+        return new Verdict
+        {
+            PolicyId = policy.Id,
+            Stage = policy.Stage,
+            Action = action,
+            Answer = null,
+            Reason = $"budget exceeded ({F(budget.TotalMilliseconds)} ms); {Describe(policy.OnError)} → {action}",
             FromError = true,
         };
     }
@@ -141,6 +161,8 @@ public static class VerdictResolver
             Reason = $"chose '{choice.Choice}' with confidence {F(choice.Confidence)} → {rule.Action}",
         };
     }
+
+    private static VerdictAction OnError(Policy policy) => policy.OnError == ErrorPolicy.FailClosed ? VerdictAction.Block : VerdictAction.Allow;
 
     private static string F(double d) => d.ToString("0.###", CultureInfo.InvariantCulture);
 

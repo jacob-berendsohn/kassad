@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Kassad.Engine;
 using Kassad.Policies;
 using Microsoft.Extensions.Options;
@@ -98,31 +97,8 @@ public class GuardrailEngineTests
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => engine.EvaluateAsync(Stage.Inbound, "x", cts.Token));
     }
 
-    [Fact]
-    public async Task Budget_overrun_becomes_error_verdicts_without_waiting_for_the_model()
-    {
-        var model = BenignAnswers(new FakeDecisionModel { Delay = TimeSpan.FromMilliseconds(500) });
-        var engine = WithBudget(model, TimeSpan.FromMilliseconds(50));
-
-        var stopwatch = Stopwatch.StartNew();
-        var result = await engine.EvaluateAsync(Stage.Inbound, "hello");
-        stopwatch.Stop();
-
-        Assert.InRange(stopwatch.Elapsed, TimeSpan.Zero, TimeSpan.FromMilliseconds(100));
-        Assert.True(result.BudgetExceeded);
-        Assert.True(result.HadModelError);
-        Assert.Equal(VerdictAction.Block, result.Verdicts.Single(v => v.PolicyId == "prompt_injection").Action); // fail_closed
-        Assert.Equal(VerdictAction.Allow, result.Verdicts.Single(v => v.PolicyId == "request_class").Action);   // fail_open
-        Assert.Equal(VerdictAction.Block, result.Outcome);
-        Assert.All(result.Verdicts, v =>
-        {
-            Assert.True(v.FromError);
-            Assert.Null(v.Answer);
-            Assert.StartsWith("budget exceeded", v.Reason, StringComparison.Ordinal);
-        });
-        Assert.Null(result.Usage);
-        Assert.True(model.LastToken.IsCancellationRequested, "the model should have been cancelled through the linked token");
-    }
+    // The 50 ms budget / 500 ms model case with its wall-clock bound lives in GuardrailEngineBudgetTimingTests,
+    // which runs after the parallel collections so the bound measures the engine and not runner contention.
 
     [Fact]
     public async Task Model_that_answers_within_the_budget_is_unaffected()

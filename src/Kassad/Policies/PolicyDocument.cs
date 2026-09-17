@@ -47,6 +47,7 @@ internal sealed class PolicyDocument
         {
             var entry = document.Policies[i];
             var label = string.IsNullOrWhiteSpace(entry.Id) ? $"policies[{i}]" : entry.Id;
+            var errorsBefore = errors.Count;
 
             if (entry.Stage is null)
             {
@@ -75,9 +76,13 @@ internal sealed class PolicyDocument
             }
 
             var question = BuildQuestion(label, entry, errors);
-            if (question is null || entry.Stage is null || entry.OnError is null)
+            if (question is null || entry.Stage is null || entry.OnError is null || errors.Count > errorsBefore)
             {
-                continue; // errors already recorded
+                // Every problem with this entry is already in `errors`. Building a Policy from it anyway would
+                // dereference the very pieces that are missing (a null stage, on_error, or action), so skip it;
+                // the exception below reports the entry together with the rest of the document. The explicit null
+                // checks are implied by the count check but are what lets the compiler see .Value is safe below.
+                continue;
             }
 
             policies.Add(new Policy

@@ -143,7 +143,9 @@ sample policy file as a starting point, not a recommendation.
 - `TypeSafeClient` resolves an `HttpClient` from `IHttpClientFactory` per call, so it is safe as a
   singleton and handler rotation keeps working.
 - Model failures never throw out of the engine. They become verdicts via each policy's `on_error`,
-  and `StageResult.HadModelError` tells you it happened.
+  and `StageResult.HadModelError` tells you it happened. A latency budget
+  (`AddKassad(..., o => o.Budget = TimeSpan.FromMilliseconds(800))`) works the same way: the model call
+  is cancelled, the policies resolve through `on_error`, and `StageResult.BudgetExceeded` is set.
 - Rejection responses do not name the policy that fired unless you opt in. Telling an attacker which
   check caught them is free reconnaissance.
 - Streaming (`text/event-stream`) responses pass through the handler unevaluated with a warning.

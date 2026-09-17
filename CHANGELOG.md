@@ -14,4 +14,4 @@ Versions come from git tags via MinVer; nothing here is hand-numbered until a ta
 - `Kassad.AspNetCore`: `UseKassadInbound()` middleware, `AddKassadHandler()` for provider `HttpClient`s, problem+json rejections.
 - `schemas/kassad-policies.schema.json` for editor validation of policy files.
 
-[Unreleased]: https://github.com/__GITHUB_OWNER__/kassad/compare/HEAD...HEAD
+[Unreleased]: https://github.com/jacob-berendsohn/kassad/compare/HEAD...HEAD

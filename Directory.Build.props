@@ -22,12 +22,12 @@
 
   <!-- Package metadata shared by every packable project. -->
   <PropertyGroup>
-    <Authors>Jacob</Authors>
+    <Authors>Jacob Berendsohn</Authors>
     <Company>Kassad Contributors</Company>
     <Copyright>Copyright (c) 2026 Kassad Contributors</Copyright>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/__GITHUB_OWNER__/kassad</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/__GITHUB_OWNER__/kassad</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/jacob-berendsohn/kassad</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/jacob-berendsohn/kassad</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageTags>llm;guardrails;ai-safety;prompt-injection;typesafe;jev;aspnetcore;middleware</PackageTags>

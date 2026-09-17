@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/__GITHUB_OWNER__/kassad/main/schemas/kassad-policies.schema.json",
+  "$id": "https://raw.githubusercontent.com/jacob-berendsohn/kassad/main/schemas/kassad-policies.schema.json",
   "title": "Kassad policy file",
   "description": "Declares the guardrail policies Kassad evaluates. One policy = one question. Thresholds live here, never in instructions.",
   "type": "object",

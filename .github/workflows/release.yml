@@ -1,7 +1,7 @@
 name: Release
 
 # Publishes to nuget.org via Trusted Publishing (OIDC). No long-lived API key is stored anywhere.
-# One-time setup on nuget.org → Trusted Publishing: owner=__GITHUB_OWNER__, repo=kassad,
+# One-time setup on nuget.org → Trusted Publishing: owner=jacob-berendsohn, repo=kassad,
 # workflow=release.yml, environment=nuget. NUGET_USER is your nuget.org profile name (not email).
 
 on:

@@ -100,7 +100,7 @@ public sealed class KassadInboundMiddleware
     {
         var problem = new Dictionary<string, object?>
         {
-            ["type"] = "https://github.com/__GITHUB_OWNER__/kassad/blob/main/Docs/specs/rejection-response.md",
+            ["type"] = "https://github.com/jacob-berendsohn/kassad/blob/main/Docs/specs/rejection-response.md",
             ["title"] = "Rejected by Kassad",
             ["status"] = status,
             ["detail"] = detail,

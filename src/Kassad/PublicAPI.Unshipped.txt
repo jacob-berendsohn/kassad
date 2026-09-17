@@ -6,6 +6,7 @@ Kassad.Engine.EvaluationOptions.EvaluationOptions() -> void
 Kassad.Engine.GuardrailEngine
 Kassad.Engine.GuardrailEngine.EvaluateAsync(Kassad.Stage stage, object! state, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Kassad.StageResult!>!
 Kassad.Engine.GuardrailEngine.GuardrailEngine(Kassad.IDecisionModel! model, Kassad.Policies.PolicySet! policies, Microsoft.Extensions.Options.IOptions<Kassad.Engine.EvaluationOptions!>? options = null, Microsoft.Extensions.Logging.ILogger<Kassad.Engine.GuardrailEngine!>? logger = null) -> void
+Kassad.Engine.GuardrailEngineExtensions
 Kassad.Engine.IGuardrailEngine
 Kassad.Engine.IGuardrailEngine.EvaluateAsync(Kassad.Stage stage, object! state, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Kassad.StageResult!>!
 Kassad.Engine.VerdictResolver
@@ -66,6 +67,8 @@ override Kassad.Policies.ChoiceRule.ToString() -> string!
 override Kassad.Policies.Policy.Equals(object? obj) -> bool
 override Kassad.Policies.Policy.GetHashCode() -> int
 override Kassad.Policies.Policy.ToString() -> string!
+static Kassad.Engine.GuardrailEngineExtensions.EvaluateGroundingAsync(this Kassad.Engine.IGuardrailEngine! engine, Kassad.GroundingState! grounding, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Kassad.StageResult!>!
+static Kassad.Engine.GuardrailEngineExtensions.EvaluateToolCallAsync(this Kassad.Engine.IGuardrailEngine! engine, Kassad.ToolCallState! toolCall, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Kassad.StageResult!>!
 static Kassad.Engine.VerdictResolver.FromBudgetExceeded(Kassad.Policies.Policy! policy, System.TimeSpan budget) -> Kassad.Verdict!
 static Kassad.Engine.VerdictResolver.FromError(Kassad.Policies.Policy! policy, System.Exception! error) -> Kassad.Verdict!
 static Kassad.Engine.VerdictResolver.Resolve(Kassad.Policies.Policy! policy, Kassad.Answer! answer) -> Kassad.Verdict!

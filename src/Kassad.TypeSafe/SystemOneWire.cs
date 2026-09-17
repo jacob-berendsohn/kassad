@@ -98,9 +98,49 @@ internal static class SystemOneWire
             case JsonNode node:
                 node.WriteTo(writer);
                 break;
+            case ToolCallState toolCall:
+                // The documented shape for tool-call policies (see ToolCallState). The schema and arguments arrive as
+                // JSON text; they go out as JSON values so the model sees structure, not escaped strings.
+                writer.WriteStartObject();
+                writer.WriteString("user_intent", toolCall.UserIntent);
+                writer.WriteString("tool_name", toolCall.ToolName);
+                WriteJsonText(writer, "tool_schema", toolCall.ToolSchemaJson);
+                WriteJsonText(writer, "arguments", toolCall.ArgumentsJson);
+                writer.WriteEndObject();
+                break;
+            case GroundingState grounding:
+                // The documented shape for grounding policies (see GroundingState); source_id only when the caller set one.
+                writer.WriteStartObject();
+                writer.WriteString("claim", grounding.Claim);
+                writer.WriteString("source_passage", grounding.SourcePassage);
+                if (grounding.SourceId is not null)
+                {
+                    writer.WriteString("source_id", grounding.SourceId);
+                }
+
+                writer.WriteEndObject();
+                break;
             default:
                 JsonSerializer.Serialize(writer, state, state.GetType(), StateOptions);
                 break;
+        }
+    }
+
+    /// <summary>
+    /// Writes JSON text as a JSON value, or as a string when it does not parse, so an LLM's malformed arguments still
+    /// reach the policies instead of failing the request.
+    /// </summary>
+    private static void WriteJsonText(Utf8JsonWriter writer, string name, string json)
+    {
+        writer.WritePropertyName(name);
+        try
+        {
+            using var document = JsonDocument.Parse(json);
+            document.RootElement.WriteTo(writer);
+        }
+        catch (JsonException)
+        {
+            writer.WriteStringValue(json);
         }
     }
 

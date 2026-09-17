@@ -139,12 +139,24 @@ These are not conventions; the policy loader rejects a file that violates them.
 |---|---|---|
 | `inbound` | the request body / user message | injection, jailbreak, PII in prompt, prohibited request class |
 | `outbound` | `{ request, response }` | sensitive-data leak, unsafe advice, harm severity, non-answer |
-| `tool_call` | `{ user_intent, tool_schema, arguments }` | does the call match intent, is it destructive, are args plausible |
-| `grounding` | `{ claim, source_passage }` | does the source support the claim |
+| `tool_call` | `{ user_intent, tool_name, tool_schema, arguments }` from a `ToolCallState` | does the call match intent, is it destructive, are args plausible |
+| `grounding` | `{ claim, source_passage, source_id }` from a `GroundingState` | does the source support the claim |
 
-`inbound` and `outbound` are wired through the middleware and handler today. `tool_call` and
-`grounding` are available through `IGuardrailEngine.EvaluateAsync` directly; framework hooks for
-them are roadmap Phase 3.
+`inbound` and `outbound` are wired through the middleware and handler. `tool_call` and `grounding` are
+code-only: build the state record and call the typed helper. The record's fields reach the model under the
+names in the table, so policy instructions can refer to them ("Compare `arguments` against `user_intent`").
+
+```csharp
+var toolCall = await engine.EvaluateToolCallAsync(
+    new ToolCallState(userMessage, call.Name, tool.ParametersJson, call.ArgumentsJson));
+if (toolCall.Outcome >= VerdictAction.Review) { /* confirm with the user before running it */ }
+
+var grounding = await engine.EvaluateGroundingAsync(new GroundingState(sentence, passage.Text, passage.Id));
+```
+
+`ToolSchemaJson` and `ArgumentsJson` go out as JSON values, not escaped strings; text that is not valid JSON
+is sent as a string, so an LLM's malformed arguments are still checked. `source_id` is left out when null.
+The sample policy file carries illustrative `tool_call` and `grounding` policies with untuned thresholds.
 
 ## Numbers
 

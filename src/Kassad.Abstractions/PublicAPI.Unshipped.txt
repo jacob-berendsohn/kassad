@@ -47,6 +47,17 @@ Kassad.DecisionResponse.Usage.init -> void
 Kassad.ErrorPolicy
 Kassad.ErrorPolicy.FailClosed = 1 -> Kassad.ErrorPolicy
 Kassad.ErrorPolicy.FailOpen = 0 -> Kassad.ErrorPolicy
+Kassad.GroundingState
+Kassad.GroundingState.<Clone>$() -> Kassad.GroundingState!
+Kassad.GroundingState.Claim.get -> string!
+Kassad.GroundingState.Claim.init -> void
+Kassad.GroundingState.Deconstruct(out string! Claim, out string! SourcePassage, out string? SourceId) -> void
+Kassad.GroundingState.Equals(Kassad.GroundingState? other) -> bool
+Kassad.GroundingState.GroundingState(string! Claim, string! SourcePassage, string? SourceId = null) -> void
+Kassad.GroundingState.SourceId.get -> string?
+Kassad.GroundingState.SourceId.init -> void
+Kassad.GroundingState.SourcePassage.get -> string!
+Kassad.GroundingState.SourcePassage.init -> void
 Kassad.IDecisionModel
 Kassad.IDecisionModel.EvaluateAsync(Kassad.DecisionRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Kassad.DecisionResponse!>!
 Kassad.IDecisionModel.Name.get -> string!
@@ -126,6 +137,19 @@ Kassad.TokenUsage.InputTokens.init -> void
 Kassad.TokenUsage.OutputTokens.get -> int
 Kassad.TokenUsage.OutputTokens.init -> void
 Kassad.TokenUsage.TokenUsage(int InputTokens, int OutputTokens) -> void
+Kassad.ToolCallState
+Kassad.ToolCallState.<Clone>$() -> Kassad.ToolCallState!
+Kassad.ToolCallState.ArgumentsJson.get -> string!
+Kassad.ToolCallState.ArgumentsJson.init -> void
+Kassad.ToolCallState.Deconstruct(out string! UserIntent, out string! ToolName, out string! ToolSchemaJson, out string! ArgumentsJson) -> void
+Kassad.ToolCallState.Equals(Kassad.ToolCallState? other) -> bool
+Kassad.ToolCallState.ToolCallState(string! UserIntent, string! ToolName, string! ToolSchemaJson, string! ArgumentsJson) -> void
+Kassad.ToolCallState.ToolName.get -> string!
+Kassad.ToolCallState.ToolName.init -> void
+Kassad.ToolCallState.ToolSchemaJson.get -> string!
+Kassad.ToolCallState.ToolSchemaJson.init -> void
+Kassad.ToolCallState.UserIntent.get -> string!
+Kassad.ToolCallState.UserIntent.init -> void
 Kassad.Verdict
 Kassad.Verdict.<Clone>$() -> Kassad.Verdict!
 Kassad.Verdict.Action.get -> Kassad.VerdictAction
@@ -168,6 +192,9 @@ override Kassad.DecisionRequest.ToString() -> string!
 override Kassad.DecisionResponse.Equals(object? obj) -> bool
 override Kassad.DecisionResponse.GetHashCode() -> int
 override Kassad.DecisionResponse.ToString() -> string!
+override Kassad.GroundingState.Equals(object? obj) -> bool
+override Kassad.GroundingState.GetHashCode() -> int
+override Kassad.GroundingState.ToString() -> string!
 override Kassad.NoulAnswer.<Clone>$() -> Kassad.NoulAnswer!
 override Kassad.NoulAnswer.Equals(object? obj) -> bool
 override Kassad.NoulAnswer.GetHashCode() -> int
@@ -196,6 +223,9 @@ override Kassad.StageResult.ToString() -> string!
 override Kassad.TokenUsage.Equals(object? obj) -> bool
 override Kassad.TokenUsage.GetHashCode() -> int
 override Kassad.TokenUsage.ToString() -> string!
+override Kassad.ToolCallState.Equals(object? obj) -> bool
+override Kassad.ToolCallState.GetHashCode() -> int
+override Kassad.ToolCallState.ToString() -> string!
 override Kassad.Verdict.Equals(object? obj) -> bool
 override Kassad.Verdict.GetHashCode() -> int
 override Kassad.Verdict.ToString() -> string!
@@ -215,6 +245,8 @@ static Kassad.DecisionRequest.operator !=(Kassad.DecisionRequest? left, Kassad.D
 static Kassad.DecisionRequest.operator ==(Kassad.DecisionRequest? left, Kassad.DecisionRequest? right) -> bool
 static Kassad.DecisionResponse.operator !=(Kassad.DecisionResponse? left, Kassad.DecisionResponse? right) -> bool
 static Kassad.DecisionResponse.operator ==(Kassad.DecisionResponse? left, Kassad.DecisionResponse? right) -> bool
+static Kassad.GroundingState.operator !=(Kassad.GroundingState? left, Kassad.GroundingState? right) -> bool
+static Kassad.GroundingState.operator ==(Kassad.GroundingState? left, Kassad.GroundingState? right) -> bool
 static Kassad.NoulAnswer.operator !=(Kassad.NoulAnswer? left, Kassad.NoulAnswer? right) -> bool
 static Kassad.NoulAnswer.operator ==(Kassad.NoulAnswer? left, Kassad.NoulAnswer? right) -> bool
 static Kassad.NoulCriteria.operator !=(Kassad.NoulCriteria? left, Kassad.NoulCriteria? right) -> bool
@@ -231,6 +263,8 @@ static Kassad.StageResult.operator !=(Kassad.StageResult? left, Kassad.StageResu
 static Kassad.StageResult.operator ==(Kassad.StageResult? left, Kassad.StageResult? right) -> bool
 static Kassad.TokenUsage.operator !=(Kassad.TokenUsage? left, Kassad.TokenUsage? right) -> bool
 static Kassad.TokenUsage.operator ==(Kassad.TokenUsage? left, Kassad.TokenUsage? right) -> bool
+static Kassad.ToolCallState.operator !=(Kassad.ToolCallState? left, Kassad.ToolCallState? right) -> bool
+static Kassad.ToolCallState.operator ==(Kassad.ToolCallState? left, Kassad.ToolCallState? right) -> bool
 static Kassad.Verdict.operator !=(Kassad.Verdict? left, Kassad.Verdict? right) -> bool
 static Kassad.Verdict.operator ==(Kassad.Verdict? left, Kassad.Verdict? right) -> bool
 virtual Kassad.Answer.EqualityContract.get -> System.Type!

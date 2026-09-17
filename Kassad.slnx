@@ -1,0 +1,27 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+    <File Path="global.json" />
+    <File Path="nuget.config" />
+    <File Path=".editorconfig" />
+    <File Path="README.md" />
+    <File Path="PROJECT_CONTEXT.md" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/Kassad.Abstractions/Kassad.Abstractions.csproj" />
+    <Project Path="src/Kassad/Kassad.csproj" />
+    <Project Path="src/Kassad.TypeSafe/Kassad.TypeSafe.csproj" />
+    <Project Path="src/Kassad.AspNetCore/Kassad.AspNetCore.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Kassad.Tests/Kassad.Tests.csproj" />
+    <Project Path="tests/Kassad.TypeSafe.Tests/Kassad.TypeSafe.Tests.csproj" />
+  </Folder>
+  <Folder Name="/samples/">
+    <Project Path="samples/Kassad.Sample.ChatApi/Kassad.Sample.ChatApi.csproj" />
+  </Folder>
+  <Folder Name="/eval/">
+    <Project Path="eval/Kassad.Eval/Kassad.Eval.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,55 @@
+<Project>
+
+  <!--
+    Root build properties. Everything here applies to every project in the repo.
+    src/, tests/, samples/ and eval/ each have their own Directory.Build.props that
+    imports this one and layers packability / analyzer settings on top.
+  -->
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <AnalysisLevel>latest</AnalysisLevel> <!-- raise to latest-recommended in roadmap 0.4 once the surface is baselined -->
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+    <AccelerateBuildsInVisualStudio>true</AccelerateBuildsInVisualStudio>
+  </PropertyGroup>
+
+  <!-- Package metadata shared by every packable project. -->
+  <PropertyGroup>
+    <Authors>Jacob</Authors>
+    <Company>Kassad Contributors</Company>
+    <Copyright>Copyright (c) 2026 Kassad Contributors</Copyright>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/__GITHUB_OWNER__/kassad</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/__GITHUB_OWNER__/kassad</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>llm;guardrails;ai-safety;prompt-injection;typesafe;jev;aspnetcore;middleware</PackageTags>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <DebugType>portable</DebugType>
+  </PropertyGroup>
+
+  <!--
+    Versioning: MinVer derives the version from the nearest `v*` git tag.
+    No version numbers are checked into this repo. `git tag v0.1.0-preview.1` is a release.
+  -->
+  <PropertyGroup>
+    <MinVerTagPrefix>v</MinVerTagPrefix>
+    <MinVerDefaultPreReleaseIdentifiers>preview.0</MinVerDefaultPreReleaseIdentifiers>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MinVer" PrivateAssets="All" />
+  </ItemGroup>
+
+</Project>

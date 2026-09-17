@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../src/Kassad.TypeSafe/Kassad.TypeSafe.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Fixtures/**/*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

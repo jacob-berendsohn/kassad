@@ -1,0 +1,57 @@
+name: Release
+
+# Publishes to nuget.org via Trusted Publishing (OIDC). No long-lived API key is stored anywhere.
+# One-time setup on nuget.org → Trusted Publishing: owner=__GITHUB_OWNER__, repo=kassad,
+# workflow=release.yml, environment=nuget. NUGET_USER is your nuget.org profile name (not email).
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write   # create the GitHub release
+  id-token: write   # OIDC token for NuGet/login
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: nuget
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - run: dotnet restore
+      - run: dotnet build --no-restore -c Release
+      - run: dotnet test --no-build -c Release
+      - run: dotnet pack --no-build -c Release -o artifacts
+
+      - name: NuGet login (OIDC → temporary API key)
+        uses: NuGet/login@v1
+        id: login
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
+      - name: Push packages
+        run: |
+          dotnet nuget push 'artifacts/*.nupkg' \
+            --api-key ${{ steps.login.outputs.NUGET_API_KEY }} \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate
+
+      - name: GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/*.nupkg
+            artifacts/*.snupkg
+          generate_release_notes: true
+          prerelease: ${{ contains(github.ref_name, '-') }}

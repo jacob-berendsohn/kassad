@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <Description>Evaluation harness. Runs policies against labeled public datasets and reports precision/recall per threshold, latency percentiles, and cost per 1k checks. Output feeds the README table.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Kassad/Kassad.csproj" />
+    <ProjectReference Include="../../src/Kassad.TypeSafe/Kassad.TypeSafe.csproj" />
+  </ItemGroup>
+
+</Project>

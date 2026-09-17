@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Kassad</RootNamespace>
+    <Description>Contracts for Kassad: the IDecisionModel interface, the Noul/Choice/Score question and answer primitives, and the Verdict types. Reference this to implement a decision model or consume verdicts without taking a dependency on the engine.</Description>
+  </PropertyGroup>
+
+</Project>

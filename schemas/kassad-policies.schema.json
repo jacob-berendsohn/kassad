@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/__GITHUB_OWNER__/kassad/main/schemas/kassad-policies.schema.json",
+  "title": "Kassad policy file",
+  "description": "Declares the guardrail policies Kassad evaluates. One policy = one question. Thresholds live here, never in instructions.",
+  "type": "object",
+  "required": ["policies"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "policies": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/policy" }
+    }
+  },
+  "$defs": {
+    "action": { "enum": ["allow", "flag", "review", "block"] },
+    "stage": { "enum": ["inbound", "outbound", "tool_call", "grounding"] },
+    "on_error": {
+      "enum": ["fail_open", "fail_closed"],
+      "description": "Behavior when the decision model cannot answer. Required; there is deliberately no default."
+    },
+    "thresholds": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "description": "Ascending cut points. value >= block → Block; else >= review → Review; else >= flag → Flag; else Allow. Noul: probability 0–1. Score: level index units.",
+      "properties": {
+        "flag": { "type": "number" },
+        "review": { "type": "number" },
+        "block": { "type": "number" }
+      }
+    },
+    "policy": {
+      "type": "object",
+      "required": ["id", "stage", "type", "instructions", "on_error"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$", "description": "Unique, snake_case. Used as the question key and in logs." },
+        "stage": { "$ref": "#/$defs/stage" },
+        "type": { "enum": ["noul", "choice", "score"] },
+        "description": { "type": "string", "description": "For humans. Not sent to the model." },
+        "instructions": { "type": "string", "minLength": 1, "description": "The single narrow question the model evaluates." },
+        "on_error": { "$ref": "#/$defs/on_error" },
+        "min_confidence": {
+          "type": "number", "minimum": 0, "maximum": 1,
+          "description": "Choice/Score only: confidence below this floor yields Review regardless of the answer. 0 disables."
+        },
+        "criteria": {},
+        "thresholds": { "$ref": "#/$defs/thresholds" },
+        "actions": {
+          "type": "object",
+          "description": "Choice only: option key → what to do when that option is chosen.",
+          "additionalProperties": {
+            "type": "object",
+            "required": ["action"],
+            "additionalProperties": false,
+            "properties": {
+              "action": { "$ref": "#/$defs/action" },
+              "min_confidence": { "type": "number", "minimum": 0, "maximum": 1 }
+            }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "type": { "const": "noul" } } },
+          "then": {
+            "required": ["thresholds"],
+            "properties": {
+              "criteria": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": { "true": { "type": "string" }, "false": { "type": "string" } }
+              }
+            },
+            "not": { "required": ["actions"] }
+          }
+        },
+        {
+          "if": { "properties": { "type": { "const": "choice" } } },
+          "then": {
+            "required": ["criteria", "actions"],
+            "properties": {
+              "criteria": {
+                "type": "object",
+                "minProperties": 2,
+                "additionalProperties": { "type": ["string", "null"] }
+              }
+            },
+            "not": { "required": ["thresholds"] }
+          }
+        },
+        {
+          "if": { "properties": { "type": { "const": "score" } } },
+          "then": {
+            "required": ["criteria", "thresholds"],
+            "properties": {
+              "criteria": { "type": "array", "minItems": 2, "items": { "type": "string" } }
+            },
+            "not": { "required": ["actions"] }
+          }
+        }
+      ]
+    }
+  }
+}

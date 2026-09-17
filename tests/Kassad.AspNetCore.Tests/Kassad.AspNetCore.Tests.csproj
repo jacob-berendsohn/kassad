@@ -8,6 +8,8 @@
   <ItemGroup>
     <!-- WebApplicationFactory and TestServer. Version pinned per target framework in Directory.Packages.props. -->
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <!-- FakeLogger, which the handler tests assert the streaming warning against (roadmap 2.2). Also pinned per target framework. -->
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" />
   </ItemGroup>
   <ItemGroup>
     <!--

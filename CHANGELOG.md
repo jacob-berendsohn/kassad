@@ -17,4 +17,7 @@ Versions come from git tags via MinVer; nothing here is hand-numbered until a ta
 ### Changed
 - `Kassad.TypeSafe`: HTTP 400 responses now raise `TypeSafeRequestException` (previously the base `TypeSafeException`), the same as 422. The API returns 400 for semantic validation failures such as an unknown model or a question with neither instructions nor criteria; neither status is retried.
 
+### Fixed
+- `Kassad`: `PolicySet.FromJson` and `PolicySet.FromFile` now throw `PolicyValidationException` for every malformed document. An `actions` entry without an `action` (or set to `null`), a `null` entry in `policies`, a non-string `true`/`false` in noul `criteria`, or a non-string level in score `criteria` used to escape as `InvalidOperationException` or `NullReferenceException` after the error had already been recorded. A non-string choice description was silently read as `null` and a `null` score level as an empty string; both are now rejected, as the spec and schema already required.
+
 [Unreleased]: https://github.com/jacob-berendsohn/kassad/compare/HEAD...HEAD

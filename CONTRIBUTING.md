@@ -18,7 +18,9 @@ Thanks for looking. A few things that will save us both a round trip.
 - Root-cause fixes only. A PR that adds a null check where a null should be impossible will be asked
   to find out why the null is there.
 - Tests: unit tests must not need network or an API key. Live tests are marked `[Trait("Category", "Live")]`
-  and skip themselves when `TYPESAFE_API_KEY` is absent.
+  and skip themselves when `TYPESAFE_API_KEY` is absent. CI enforces the split: the `build` job runs
+  `dotnet test --filter "Category!=Live"` with no key, so a test that needs the key and lacks the trait
+  fails there; the `live` job runs `--filter "Category=Live"` with the secret on pushes to `main`.
 
 ## Running locally
 

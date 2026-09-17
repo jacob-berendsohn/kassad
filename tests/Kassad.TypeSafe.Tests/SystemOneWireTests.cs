@@ -41,6 +41,67 @@ public class SystemOneWireTests
     }
 
     [Fact]
+    public void Tool_call_state_is_written_with_the_documented_field_names_and_nested_json()
+    {
+        var toolCall = new ToolCallState(
+            "Show me my most recent invoice.",
+            "delete_account",
+            """{"type":"object","properties":{"account_id":{"type":"string"}},"required":["account_id"]}""",
+            """{"account_id":"acct_42","confirm":true}""");
+        var bytes = SystemOneWire.WriteRequest(new DecisionRequest(toolCall, Questions), "jev-latest");
+        using var doc = JsonDocument.Parse(bytes);
+        var state = doc.RootElement.GetProperty("state");
+
+        Assert.Equal(new[] { "user_intent", "tool_name", "tool_schema", "arguments" }, state.EnumerateObject().Select(p => p.Name));
+        Assert.Equal("Show me my most recent invoice.", state.GetProperty("user_intent").GetString());
+        Assert.Equal("delete_account", state.GetProperty("tool_name").GetString());
+        Assert.Equal(JsonValueKind.Object, state.GetProperty("tool_schema").ValueKind); // JSON, not an escaped string
+        Assert.Equal("string", state.GetProperty("tool_schema").GetProperty("properties").GetProperty("account_id").GetProperty("type").GetString());
+        Assert.Equal(JsonValueKind.Object, state.GetProperty("arguments").ValueKind);
+        Assert.Equal("acct_42", state.GetProperty("arguments").GetProperty("account_id").GetString());
+        Assert.True(state.GetProperty("arguments").GetProperty("confirm").GetBoolean());
+    }
+
+    [Fact]
+    public void Tool_call_json_that_does_not_parse_is_written_as_text()
+    {
+        var toolCall = new ToolCallState("intent", "tool", "{}", """{"account_id": acct_42"""); // an LLM's malformed arguments
+        var bytes = SystemOneWire.WriteRequest(new DecisionRequest(toolCall, Questions), "jev-latest");
+        using var doc = JsonDocument.Parse(bytes);
+        var state = doc.RootElement.GetProperty("state");
+
+        Assert.Equal(JsonValueKind.String, state.GetProperty("arguments").ValueKind);
+        Assert.Equal("""{"account_id": acct_42""", state.GetProperty("arguments").GetString());
+        Assert.Equal(JsonValueKind.Object, state.GetProperty("tool_schema").ValueKind); // each field falls back on its own
+    }
+
+    [Fact]
+    public void Grounding_state_is_written_with_the_documented_field_names()
+    {
+        var grounding = new GroundingState("The treaty was signed in 1840.", "The Treaty of Waitangi was signed on 6 February 1840.", "doc-17");
+        var bytes = SystemOneWire.WriteRequest(new DecisionRequest(grounding, Questions), "jev-latest");
+        using var doc = JsonDocument.Parse(bytes);
+        var state = doc.RootElement.GetProperty("state");
+
+        Assert.Equal(new[] { "claim", "source_passage", "source_id" }, state.EnumerateObject().Select(p => p.Name));
+        Assert.Equal("The treaty was signed in 1840.", state.GetProperty("claim").GetString());
+        Assert.Equal("The Treaty of Waitangi was signed on 6 February 1840.", state.GetProperty("source_passage").GetString());
+        Assert.Equal("doc-17", state.GetProperty("source_id").GetString());
+    }
+
+    [Fact]
+    public void Grounding_state_without_a_source_id_leaves_the_field_out()
+    {
+        var grounding = new GroundingState("claim", "passage");
+        var bytes = SystemOneWire.WriteRequest(new DecisionRequest(grounding, Questions), "jev-latest");
+        using var doc = JsonDocument.Parse(bytes);
+        var state = doc.RootElement.GetProperty("state");
+
+        Assert.Equal(new[] { "claim", "source_passage" }, state.EnumerateObject().Select(p => p.Name));
+        Assert.False(state.TryGetProperty("source_id", out _));
+    }
+
+    [Fact]
     public async Task Recorded_response_round_trips_every_primitive()
     {
         // The fixture is a live response to FixtureRequests.AllTypes (see FixtureRecorder). Expected values are

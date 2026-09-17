@@ -120,6 +120,36 @@ info: Kassad.Engine.GuardrailEngine[0]
 Token usage is about 455 in / 60 out per request for a one-line message; the two inbound questions and their
 criteria make up most of the input.
 
+### Watch the meter
+
+The engine publishes the same verdicts and latencies as metrics (`Docs/specs/telemetry.md`). With the sample
+running, attach `dotnet-counters` (`dotnet tool install -g dotnet-counters`) to it and send the two requests:
+
+```bash
+dotnet-counters monitor --name Kassad.Sample.ChatApi --counters Kassad
+```
+
+Each `kassad.verdicts` row is one (stage, policy, action, from_error) combination and each `kassad.model.latency`
+row a percentile, so the two requests above light up four verdict rows and three latency rows. The rows below are
+the events `dotnet-counters collect --counters Kassad --format json` wrote on 2026-09-17 for the first two
+requests (name, tags, value), out of six sent over 25 s:
+
+```text
+kassad.verdicts ({verdict} / 1 sec)   kassad.action=allow,kassad.from_error=False,kassad.policy_id=prompt_injection,kassad.stage=inbound   1
+kassad.verdicts ({verdict} / 1 sec)   kassad.action=allow,kassad.from_error=False,kassad.policy_id=request_class,kassad.stage=inbound     1
+kassad.verdicts ({verdict} / 1 sec)   kassad.action=block,kassad.from_error=False,kassad.policy_id=prompt_injection,kassad.stage=inbound   1
+kassad.verdicts ({verdict} / 1 sec)   kassad.action=block,kassad.from_error=False,kassad.policy_id=request_class,kassad.stage=inbound     1
+kassad.model.latency (ms)             kassad.had_error=False,kassad.model=typesafe:jev-latest,kassad.stage=inbound,Percentile=50         520
+kassad.model.latency (ms)             kassad.had_error=False,kassad.model=typesafe:jev-latest,kassad.stage=inbound,Percentile=95         520
+kassad.model.latency (ms)             kassad.had_error=False,kassad.model=typesafe:jev-latest,kassad.stage=inbound,Percentile=99         520
+```
+
+`dotnet-counters` reports a counter as a rate per refresh interval (`/ 1 sec`), so a verdict row shows `1` in the
+second its verdict lands and `0` otherwise; an OpenTelemetry exporter reports the cumulative count instead. The
+latency percentiles are per interval too: 520 ms was the first call after startup, and the five one-request
+intervals that followed showed 261, 283, 214, 150 and 240 ms, matching the `Kassad Inbound outcome ... in Nms` log
+lines.
+
 ### Known gaps
 
 - The outbound policies never run because the echo endpoint does not call a provider. Roadmap 2.4 replaces the

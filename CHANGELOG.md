@@ -14,4 +14,7 @@ Versions come from git tags via MinVer; nothing here is hand-numbered until a ta
 - `Kassad.AspNetCore`: `UseKassadInbound()` middleware, `AddKassadHandler()` for provider `HttpClient`s, problem+json rejections.
 - `schemas/kassad-policies.schema.json` for editor validation of policy files.
 
+### Changed
+- `Kassad.TypeSafe`: HTTP 400 responses now raise `TypeSafeRequestException` (previously the base `TypeSafeException`), the same as 422. The API returns 400 for semantic validation failures such as an unknown model or a question with neither instructions nor criteria; neither status is retried.
+
 [Unreleased]: https://github.com/jacob-berendsohn/kassad/compare/HEAD...HEAD

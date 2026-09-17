@@ -11,7 +11,7 @@ namespace Kassad.TypeSafe;
 /// Thread-safe. Register through <see cref="TypeSafeServiceCollectionExtensions.AddTypeSafe"/> so the
 /// <see cref="HttpClient"/> is pooled, or construct directly with your own <see cref="HttpClient"/>.
 /// Retries 429/529 and transient transport errors with exponential backoff and jitter, honoring
-/// <c>Retry-After</c>. 401 and 422 are never retried.
+/// <c>Retry-After</c>. 400, 401 and 422 are never retried.
 /// </remarks>
 public sealed class TypeSafeClient : IDecisionModel
 {
@@ -118,7 +118,7 @@ public sealed class TypeSafeClient : IDecisionModel
                 throw status switch
                 {
                     401 => new TypeSafeAuthenticationException("TypeSafe rejected the API key (401).", status, body),
-                    422 => new TypeSafeRequestException($"TypeSafe rejected the request body (422): {Truncate(body)}", status, body),
+                    400 or 422 => new TypeSafeRequestException($"TypeSafe rejected the request ({status}): {Truncate(body)}", status, body),
                     429 or 529 => new TypeSafeRateLimitException($"TypeSafe returned {status} after {attempt + 1} attempt(s).", status, body, retryAfter),
                     _ => new TypeSafeException($"TypeSafe returned HTTP {status}: {Truncate(body)}", status, body),
                 };

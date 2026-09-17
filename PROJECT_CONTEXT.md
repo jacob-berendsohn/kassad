@@ -2,7 +2,7 @@
 
 ## Status
 
-Active development, pre-release. Scaffold build-verified and committed 2026-09-17; roadmap 0.1 (owner placeholder, `Authors`, package bumps) merged the same day via PR #9; roadmap 0.2 (unit tests green in CI) done locally the same day with its CI leg pending the PR; nothing published to nuget.org yet. Target: `0.1.0` with a numbers table in the README.
+Active development, pre-release. Scaffold build-verified and committed 2026-09-17; roadmap 0.1 (owner placeholder, `Authors`, package bumps) merged the same day via PR #9; roadmap 0.2 (unit tests green in CI) merged the same day via PR #10; roadmap 0.3 (wire format verified against live responses) done locally the same day with its `live` CI leg pending the merge to `main`; nothing published to nuget.org yet. Target: `0.1.0` with a numbers table in the README.
 
 ## Current stack
 
@@ -12,7 +12,7 @@ Active development, pre-release. Scaffold build-verified and committed 2026-09-1
 - **Serialization:** `System.Text.Json` (in-box). No Newtonsoft anywhere.
 - **Key libraries:** `Microsoft.Extensions.{Logging.Abstractions,DependencyInjection.Abstractions,Options,Http}` pinned per-TFM (latest 8.0.x for net8.0, 10.0.12 otherwise) in `Directory.Packages.props`; `MinVer 8.0.0`; `Microsoft.CodeAnalysis.PublicApiAnalyzers 5.6.0`
 - **Tests:** xunit `2.9.3` (v2), `xunit.runner.visualstudio 4.0.0` (runs v2 tests; verified 2026-09-17), `Microsoft.NET.Test.Sdk 18.10.1`, coverlet `10.0.1`
-- **External API:** TypeSafe System One, `POST https://api.typesafe.ai/v1/systemone`, model `jev-latest`, bearer auth. Early access as of Sept 2026.
+- **External API:** TypeSafe System One, `POST https://api.typesafe.ai/v1/systemone`, model alias `jev-latest` (responses report the resolved release, `jev-1.13.0` as of 2026-09-17), bearer auth. Early access as of Sept 2026; wire format verified against recorded live responses in roadmap 0.3.
 - **Build / package tooling:** dotnet CLI, Central Package Management, MinVer from `v*` tags, `dotnet pack` → nuget.org via GitHub Actions Trusted Publishing (OIDC)
 - **Hosting / deploy target:** none (library). CI on `ubuntu-latest` + `windows-latest`.
 
@@ -26,6 +26,7 @@ Active development, pre-release. Scaffold build-verified and committed 2026-09-1
 - **2026-09-17** — `VerdictAction` is ordered (`Allow < Flag < Review < Block`); a stage outcome is the max. Confidence below a floor (`min_confidence`) resolves to `Review`, never `Allow`.
 - **2026-09-17** — Engine never throws for model failures; they become per-policy verdicts with `FromError = true`. Only `OperationCanceledException` from the caller's token propagates.
 - **2026-09-17** — `TypeSafeClient` is a singleton that pulls an `HttpClient` from `IHttpClientFactory` per call. Reason: typed-client-as-singleton captures one handler forever and breaks DNS/handler rotation.
+- **2026-09-17** — `TypeSafeClient` maps HTTP 400 and 422 both to `TypeSafeRequestException` and retries neither. Reason: the live API returns 422 for schema violations (pydantic-style `detail` array whose `loc` names the field) and 400 for semantic ones (unknown model, a question with neither instructions nor criteria); both mean the request must change. Wire fixtures under `tests/Kassad.TypeSafe.Tests/Fixtures/` are recorded from the live API by the `FixtureRecorder` test helper (opt-in via `KASSAD_RECORD_FIXTURES=1`) and never hand-edited; `SystemOneWireTests` read expected values from the files, so re-recording needs no test changes.
 - **2026-09-17** — Rejection responses omit policy ids unless `IncludePolicyIdsInResponse = true`. Reason: naming the check that fired is reconnaissance for an attacker. Verdicts are always fully logged.
 - **2026-09-17** — Apache-2.0. Reason: patent grant matters to enterprise adopters more than MIT's brevity.
 - **2026-09-17** — Versioning by MinVer from `v*` tags; releases via NuGet Trusted Publishing. No version numbers or API keys are ever committed.
@@ -45,7 +46,7 @@ Active development, pre-release. Scaffold build-verified and committed 2026-09-1
 - **Oversized body with `fail_open` in the DelegatingHandler** throws because content is already consumed. Open. Default assumption: `fail_closed` is the recommended setting; pass-through is roadmap 3.2.
 - **Public API baseline.** `RS0016/RS0017/RS0026/RS0027` are warnings, not errors, until `PublicAPI.Unshipped.txt` is populated (roadmap 0.4). After that, remove `WarningsNotAsErrors` in `src/Directory.Build.props`.
 - **`AnalysisLevel` is `latest`, not `latest-recommended`.** Raise in roadmap 0.4 alongside the API baseline and fix what fires.
-- **TypeSafe wire format is early-access.** Fixtures in `tests/Kassad.TypeSafe.Tests/Fixtures/` were transcribed from the public API reference, not recorded from live traffic. Default assumption: replace with recorded responses in roadmap 0.3; treat any live/fixture mismatch as a bug in the fixture first.
+- **TypeSafe wire format is early-access. Resolved 2026-09-17.** Fixtures in `tests/Kassad.TypeSafe.Tests/Fixtures/` are recorded from the live API (roadmap 0.3): `response-all-types.json` (200; `model` `jev-1.13.0`; 414 input / 73 output tokens), `response-422-numeric-state.json`, `response-400-empty-instructions.json`, each with `recorded_at`, `recorded_status` and `recorded_request_id` ahead of the untouched wire properties. The documented answer shapes held exactly. The one divergence was error classification (the API uses 400 as well as 422 for bad requests), fixed in the client. Still early-access: the API accepts single-option choice and single-level score questions that its reference forbids, its validation messages list an undocumented `bounding_box` question type, and choice `probabilities` arrive in arbitrary key order. Re-record with `KASSAD_RECORD_FIXTURES=1` when the vendor announces a wire change; `Docs/research/typesafe-api-notes.md` has the details.
 - **Thresholds in the sample policy file are illustrative.** No eval has been run. Do not present them as recommendations anywhere.
 
 ## Repository layout
@@ -70,11 +71,12 @@ Active development, pre-release. Scaffold build-verified and committed 2026-09-1
 - `Docs/project-prompts.md` — one prompt per roadmap sub-phase, generated from the roadmap by `generate-phase-prompts`; regenerate when the roadmap changes, never edit in place.
 - `Docs/specs/policy-file-format.md` — the policy JSON format, field by field, with validation rules.
 - `Docs/specs/rejection-response.md` — shape of the 403 problem+json and the handler's synthesized error.
-- `Docs/research/typesafe-api-notes.md` — what we know about the System One API, with source URLs.
+- `Docs/research/typesafe-api-notes.md` — what we know about the System One API, with source URLs, and what the wire returned when the fixtures were recorded.
 
 ## Environment / secrets
 
 - `TYPESAFE_API_KEY` — bearer token for api.typesafe.ai. Read by `TypeSafeClientOptions` when `ApiKey` is unset. Required by the sample and by live tests; absent in unit tests by design.
+- `KASSAD_RECORD_FIXTURES` — set to `1` (together with `TYPESAFE_API_KEY`) to let the `FixtureRecorder` test in `tests/Kassad.TypeSafe.Tests` overwrite `Fixtures/*.json` from the live API. Never set in CI; the `live` job reports the recorder as skipped.
 - `NUGET_USER` — GitHub Actions secret: nuget.org profile name used by `NuGet/login@v1` for Trusted Publishing. Not an API key.
 - `TYPESAFE_API_KEY` (Actions secret) — enables the `live` CI job on pushes to the owner's repo only.
 
@@ -85,3 +87,4 @@ Active development, pre-release. Scaffold build-verified and committed 2026-09-1
 - **2026-09-17** — Phase prompts generated from roadmap.
 - **2026-09-17** — Roadmap 0.1 done locally: GitHub owner placeholder replaced with `jacob-berendsohn` in nine files, `Authors` set to `Jacob Berendsohn`, every pin in `Directory.Packages.props` at the latest stable release with a green build after each group and tests green on both TFMs. Package-version caveat resolved; sample pack-warning caveat added. CI leg awaits the first PR.
 - **2026-09-17** — Roadmap 0.2 done locally: both test projects green on net8.0 and net10.0 under the CI command (`--filter "Category!=Live"`, coverage collected) with no network access; `ci.yml` trx logger moved from `LogFileName=results.trx` to `LogFilePrefix=results` (per-TFM runs no longer overwrite each other; files land as `results_<tfm>_<timestamp>.trx` under each project's `TestResults/`, matched by the existing upload glob); `CONTRIBUTING.md` now names the CI filters that enforce the Live trait. Verified that `--filter "Category=Live"` with no Live tests exits 0, so the `live` job on `main` is safe until 0.3. CI leg awaits the PR.
+- **2026-09-17** — Roadmap 0.3 done locally: fixtures recorded from the live API (`model` `jev-1.13.0`, real token counts, `recorded_at` on every file) by a `FixtureRecorder` test helper gated on `KASSAD_RECORD_FIXTURES=1`; `SystemOneWireTests` read expected values from the fixture files; `TypeSafeLiveTests` (`Category=Live`, `[LiveFact]` self-skip, serialized with the key-clearing unit test through `ApiKeyEnvironmentCollection`) round-trip noul/choice/score, assert `usage`, and pin a 422 and a 400 with no retry; `TypeSafeClient` now raises `TypeSafeRequestException` for 400 as well as 422; API notes corrected with the 400/422 split, the resolved model string, `x-typesafe-request-id`, `GET /v1/models` and the leniencies observed. Live suite green on net8.0 and net10.0 with the key and fully skipped without it; unit suite green under the CI command. The `live` CI leg runs on the push to `main` after the PR merges and needs the `TYPESAFE_API_KEY` repository secret.

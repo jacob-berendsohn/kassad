@@ -21,6 +21,10 @@ Thanks for looking. A few things that will save us both a round trip.
   and skip themselves when `TYPESAFE_API_KEY` is absent. CI enforces the split: the `build` job runs
   `dotnet test --filter "Category!=Live"` with no key, so a test that needs the key and lacks the trait
   fails there; the `live` job runs `--filter "Category=Live"` with the secret on pushes to `main`.
+  In `Kassad.TypeSafe.Tests`, mark a live test `[LiveFact]` (it sets `Skip` when the key is absent) and put
+  its class in `ApiKeyEnvironmentCollection`. Wire fixtures under `Fixtures/` are recorded, never hand-edited:
+  re-record with `KASSAD_RECORD_FIXTURES=1 TYPESAFE_API_KEY=... dotnet test tests/Kassad.TypeSafe.Tests -f net10.0 --filter FullyQualifiedName~FixtureRecorder`
+  and commit the diff.
 
 ## Running locally
 

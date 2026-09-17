@@ -2,10 +2,12 @@
 
 | | |
 |---|---|
-| **Prompts generated** | `2026-09-17 12:27` |
-| **Roadmap last modified** | `2026-09-17` per the most recent `Docs/roadmap.md` changelog entry (the changelog records dates only; the file was last saved `2026-09-17 12:18`) |
+| **Prompts generated** | `2026-09-17 14:47` (in-place refresh of the `2026-09-17 12:27` generation; see the refresh note below) |
+| **Roadmap last modified** | `2026-09-17` per the most recent `Docs/roadmap.md` changelog entry, the 0.4 end state (the changelog records dates only; the file was last committed `2026-09-17 14:30`, `838f4c6`) |
 
 > **Staleness check.** If the roadmap's last-modified timestamp is newer than the prompts-generated timestamp, **this file is stale**. Regenerate it before executing any prompt; the prompts below may not reflect the current roadmap. Do not edit prompts here in place — fix the roadmap and regenerate.
+
+> **Refreshed in place 2026-09-17 14:47.** Between generation (`6892f84`) and `838f4c6` the roadmap changed only in its Prerequisites bullet (owner placeholder recorded as done) and its changelog (0.1–0.4 end states); no sub-phase Goal, Deliverables, Verification or Depends-on line changed, and every prompt below was re-checked verbatim against the roadmap. Header timestamps and the done markers on Prompts 0.1–0.4 are the only edits. The next roadmap change that touches a sub-phase field needs a full regeneration, not another refresh.
 
 ## How to use
 
@@ -38,6 +40,8 @@ Phases 0 → 1 → 2 are strictly sequential. Phase 3 and Phase 4 depend on Phas
 
 #### Prompt 0.1 — Scaffold compiles warning-free
 
+*Done 2026-09-17; end state recorded in the roadmap changelog. Do not re-run.*
+
 **Session setup.** Effort: `medium` — mechanical maintenance with a safety net: the blockers that needed judgment are already fixed; what remains is a placeholder sweep and version bumps proven by a green build after each group and by the CI run.
 
 **Read first:**
@@ -63,6 +67,8 @@ Phases 0 → 1 → 2 are strictly sequential. Phase 3 and Phase 4 depend on Phas
 **Depends on:** None.
 
 #### Prompt 0.2 — Unit tests green in CI
+
+*Done 2026-09-17; end state recorded in the roadmap changelog. Do not re-run.*
 
 **Session setup.** Effort: `medium` — the tests already pass locally on both TFMs; the remaining work is CI YAML plumbing (trx logger, Live filter) verified by the CI run itself.
 
@@ -90,6 +96,8 @@ Phases 0 → 1 → 2 are strictly sequential. Phase 3 and Phase 4 depend on Phas
 
 #### Prompt 0.3 — Wire format verified against live responses
 
+*Done 2026-09-17; end state recorded in the roadmap changelog. Do not re-run.*
+
 **Session setup.** Effort: `high` — first live integration: recording real responses, adding `Category=Live` tests, and reconciling the API notes against whatever the wire actually returns is discovery work.
 
 **Read first:**
@@ -116,6 +124,8 @@ Phases 0 → 1 → 2 are strictly sequential. Phase 3 and Phase 4 depend on Phas
 **Depends on:** 0.2; TypeSafe API key.
 
 #### Prompt 0.4 — Public API baselined and analysis level raised
+
+*Done 2026-09-17; end state recorded in the roadmap changelog. Do not re-run.*
 
 **Session setup.** Effort: `high` — API-freeze work: deciding what stays public and triaging every diagnostic that `latest-recommended` raises requires judgment the roadmap could not pre-specify.
 

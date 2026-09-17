@@ -8,13 +8,15 @@
       Public API tracking. The surface was baselined in PublicAPI.Unshipped.txt in roadmap 0.4, so
       RS0016/RS0017 (plus RS0026/RS0027 for overloads) are errors like every other warning: a public
       change that is not reflected in the API file fails the build. Update it with the RS0016 code fix.
+      The analyzer package registers PublicAPI.Shipped.txt and PublicAPI.Unshipped.txt as
+      AdditionalFiles itself (its build targets add both when they exist next to the project). Do not
+      add them here again: the dotnet format workspace would load each file twice and the RS0016 code
+      fix would apply nothing.
     -->
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="All" />
-    <AdditionalFiles Include="PublicAPI.Shipped.txt" />
-    <AdditionalFiles Include="PublicAPI.Unshipped.txt" />
     <None Include="$(MSBuildThisFileDirectory)../README.md" Pack="true" PackagePath="\" Visible="false" />
   </ItemGroup>
 </Project>

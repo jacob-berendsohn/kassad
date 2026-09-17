@@ -15,6 +15,10 @@ Versions come from git tags via MinVer; nothing here is hand-numbered until a ta
 - `schemas/kassad-policies.schema.json` for editor validation of policy files.
 - `Kassad`: `EvaluationOptions.Budget` caps how long a stage waits on the decision model. When it runs out the model call is cancelled, every policy for the stage resolves through its `on_error` with a reason starting `budget exceeded`, and `StageResult.BudgetExceeded` is set; the caller's own cancellation still propagates as `OperationCanceledException`. Configure it with `AddKassad(..., o => o.Budget = ...)` or bind `EvaluationOptions` from configuration; `VerdictResolver.FromBudgetExceeded` is public alongside `FromError`.
 - `Kassad.Abstractions`: `StageResult.BudgetExceeded`.
+- `Kassad.Abstractions`: `ToolCallState` and `GroundingState`, the typed states for the two code-only stages. A decision model presents them as `{ user_intent, tool_name, tool_schema, arguments }` and `{ claim, source_passage, source_id }`; those names are the contract policy instructions can refer to.
+- `Kassad`: `GuardrailEngineExtensions.EvaluateToolCallAsync` and `EvaluateGroundingAsync` on `IGuardrailEngine`, fixing the stage and the state type together.
+- `Kassad.TypeSafe`: `TypeSafeClient` writes the two state records under those field names, embedding `ToolSchemaJson` and `ArgumentsJson` as JSON values (as strings when the text is not valid JSON) and leaving `source_id` out when it is null.
+- Sample: `kassad.policies.json` gains two illustrative `tool_call` policies (`tool_call_off_intent`, `tool_call_effect`) and two `grounding` policies (`claim_unsupported`, `grounding_strength`).
 
 ### Changed
 - `Kassad.TypeSafe`: HTTP 400 responses now raise `TypeSafeRequestException` (previously the base `TypeSafeException`), the same as 422. The API returns 400 for semantic validation failures such as an unknown model or a question with neither instructions nor criteria; neither status is retried.

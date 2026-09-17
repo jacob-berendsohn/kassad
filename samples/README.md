@@ -10,8 +10,10 @@ policies have no work to do until roadmap 2.4 wires a real provider in.
 
 The policies come from [`Kassad.Sample.ChatApi/kassad.policies.json`](Kassad.Sample.ChatApi/kassad.policies.json):
 two inbound checks, `prompt_injection` (a noul question, blocks at p(yes) ≥ 0.85) and `request_class` (a choice
-question, blocks when it picks `prohibited` with confidence ≥ 0.70), and two outbound checks. The thresholds are
-illustrative. No eval has been run yet, so do not read them as recommendations.
+question, blocks when it picks `prohibited` with confidence ≥ 0.70), two outbound checks, and, since roadmap 3.1,
+two `tool_call` and two `grounding` checks written against the field names those stages' states expose
+(`user_intent`, `tool_name`, `tool_schema`, `arguments`; `claim`, `source_passage`, `source_id`). The thresholds
+are illustrative. No eval has been run yet, so do not read them as recommendations.
 
 ### Run it
 
@@ -122,6 +124,9 @@ criteria make up most of the input.
 
 - The outbound policies never run because the echo endpoint does not call a provider. Roadmap 2.4 replaces the
   echo with a real call so the `DelegatingHandler` has something to screen.
+- The `tool_call` and `grounding` policies load with the file but never run either: the sample proposes no tool
+  calls and cites no sources. `GuardrailEngineLiveTests` in `tests/Kassad.TypeSafe.Tests` runs the same two noul
+  policies through `EvaluateToolCallAsync` and `EvaluateGroundingAsync` against the live API.
 
 Recorded 2026-09-17 against the model alias `jev-latest` (which resolved to `jev-1.13.0` when the wire fixtures
 were recorded the same day). Four runs of each request returned the same verdicts. The recording predates the

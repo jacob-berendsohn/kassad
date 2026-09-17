@@ -86,9 +86,11 @@ public class PolicySetTests
 
         var set = PolicySet.FromFile(path);
 
-        Assert.Equal(4, set.All.Length);
+        Assert.Equal(8, set.All.Length);
         Assert.Equal(2, set.ForStage(Stage.Inbound).Length);
         Assert.Equal(2, set.ForStage(Stage.Outbound).Length);
+        Assert.Equal(2, set.ForStage(Stage.ToolCall).Length);
+        Assert.Equal(2, set.ForStage(Stage.Grounding).Length);
     }
 
     [Fact]

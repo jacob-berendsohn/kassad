@@ -15,7 +15,7 @@
   <!-- Build tooling -->
   <ItemGroup>
     <PackageVersion Include="MinVer" Version="6.0.0" />
-    <PackageVersion Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="3.3.4" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="5.6.0" />
   </ItemGroup>
 
   <!-- Microsoft.Extensions.* are pinned per target framework so net8.0 consumers don't get dragged forward. -->

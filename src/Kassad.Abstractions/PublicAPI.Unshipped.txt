@@ -102,6 +102,8 @@ Kassad.Stage.Outbound = 1 -> Kassad.Stage
 Kassad.Stage.ToolCall = 2 -> Kassad.Stage
 Kassad.StageResult
 Kassad.StageResult.<Clone>$() -> Kassad.StageResult!
+Kassad.StageResult.BudgetExceeded.get -> bool
+Kassad.StageResult.BudgetExceeded.init -> void
 Kassad.StageResult.Equals(Kassad.StageResult? other) -> bool
 Kassad.StageResult.HadModelError.get -> bool
 Kassad.StageResult.ModelLatency.get -> System.TimeSpan

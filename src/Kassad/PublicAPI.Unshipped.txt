@@ -1,7 +1,11 @@
 #nullable enable
+Kassad.Engine.EvaluationOptions
+Kassad.Engine.EvaluationOptions.Budget.get -> System.TimeSpan?
+Kassad.Engine.EvaluationOptions.Budget.set -> void
+Kassad.Engine.EvaluationOptions.EvaluationOptions() -> void
 Kassad.Engine.GuardrailEngine
 Kassad.Engine.GuardrailEngine.EvaluateAsync(Kassad.Stage stage, object! state, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Kassad.StageResult!>!
-Kassad.Engine.GuardrailEngine.GuardrailEngine(Kassad.IDecisionModel! model, Kassad.Policies.PolicySet! policies, Microsoft.Extensions.Logging.ILogger<Kassad.Engine.GuardrailEngine!>? logger = null) -> void
+Kassad.Engine.GuardrailEngine.GuardrailEngine(Kassad.IDecisionModel! model, Kassad.Policies.PolicySet! policies, Microsoft.Extensions.Options.IOptions<Kassad.Engine.EvaluationOptions!>? options = null, Microsoft.Extensions.Logging.ILogger<Kassad.Engine.GuardrailEngine!>? logger = null) -> void
 Kassad.Engine.IGuardrailEngine
 Kassad.Engine.IGuardrailEngine.EvaluateAsync(Kassad.Stage stage, object! state, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Kassad.StageResult!>!
 Kassad.Engine.VerdictResolver
@@ -62,10 +66,13 @@ override Kassad.Policies.ChoiceRule.ToString() -> string!
 override Kassad.Policies.Policy.Equals(object? obj) -> bool
 override Kassad.Policies.Policy.GetHashCode() -> int
 override Kassad.Policies.Policy.ToString() -> string!
+static Kassad.Engine.VerdictResolver.FromBudgetExceeded(Kassad.Policies.Policy! policy, System.TimeSpan budget) -> Kassad.Verdict!
 static Kassad.Engine.VerdictResolver.FromError(Kassad.Policies.Policy! policy, System.Exception! error) -> Kassad.Verdict!
 static Kassad.Engine.VerdictResolver.Resolve(Kassad.Policies.Policy! policy, Kassad.Answer! answer) -> Kassad.Verdict!
 static Kassad.KassadServiceCollectionExtensions.AddKassad(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, Kassad.Policies.PolicySet! policies) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static Kassad.KassadServiceCollectionExtensions.AddKassad(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, Kassad.Policies.PolicySet! policies, System.Action<Kassad.Engine.EvaluationOptions!>! configure) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Kassad.KassadServiceCollectionExtensions.AddKassad(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! policyFilePath) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static Kassad.KassadServiceCollectionExtensions.AddKassad(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! policyFilePath, System.Action<Kassad.Engine.EvaluationOptions!>! configure) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 static Kassad.Policies.ActionThresholds.operator !=(Kassad.Policies.ActionThresholds? left, Kassad.Policies.ActionThresholds? right) -> bool
 static Kassad.Policies.ActionThresholds.operator ==(Kassad.Policies.ActionThresholds? left, Kassad.Policies.ActionThresholds? right) -> bool
 static Kassad.Policies.ChoiceRule.operator !=(Kassad.Policies.ChoiceRule? left, Kassad.Policies.ChoiceRule? right) -> bool

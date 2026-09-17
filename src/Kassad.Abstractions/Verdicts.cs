@@ -90,6 +90,13 @@ public sealed record StageResult
     /// <summary>Token usage reported by the model, if the call succeeded.</summary>
     public TokenUsage? Usage { get; init; }
 
-    /// <summary>True if any verdict came from an error path rather than an answer.</summary>
+    /// <summary>
+    /// True when the engine's evaluation budget ran out before the model answered. The model call was
+    /// cancelled and every verdict came from its policy's <see cref="ErrorPolicy"/>, so <see cref="HadModelError"/>
+    /// is also true. False when no budget is configured or the model answered in time.
+    /// </summary>
+    public bool BudgetExceeded { get; init; }
+
+    /// <summary>True if any verdict came from an error path rather than an answer, including a budget overrun.</summary>
     public bool HadModelError => Verdicts.Any(v => v.FromError);
 }

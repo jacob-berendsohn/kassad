@@ -1,1 +1,77 @@
 #nullable enable
+Kassad.Engine.GuardrailEngine
+Kassad.Engine.GuardrailEngine.EvaluateAsync(Kassad.Stage stage, object! state, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Kassad.StageResult!>!
+Kassad.Engine.GuardrailEngine.GuardrailEngine(Kassad.IDecisionModel! model, Kassad.Policies.PolicySet! policies, Microsoft.Extensions.Logging.ILogger<Kassad.Engine.GuardrailEngine!>? logger = null) -> void
+Kassad.Engine.IGuardrailEngine
+Kassad.Engine.IGuardrailEngine.EvaluateAsync(Kassad.Stage stage, object! state, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Kassad.StageResult!>!
+Kassad.Engine.VerdictResolver
+Kassad.KassadServiceCollectionExtensions
+Kassad.Policies.ActionThresholds
+Kassad.Policies.ActionThresholds.<Clone>$() -> Kassad.Policies.ActionThresholds!
+Kassad.Policies.ActionThresholds.ActionThresholds(double? Flag = null, double? Review = null, double? Block = null) -> void
+Kassad.Policies.ActionThresholds.Block.get -> double?
+Kassad.Policies.ActionThresholds.Block.init -> void
+Kassad.Policies.ActionThresholds.Deconstruct(out double? Flag, out double? Review, out double? Block) -> void
+Kassad.Policies.ActionThresholds.Equals(Kassad.Policies.ActionThresholds? other) -> bool
+Kassad.Policies.ActionThresholds.Flag.get -> double?
+Kassad.Policies.ActionThresholds.Flag.init -> void
+Kassad.Policies.ActionThresholds.Resolve(double value) -> Kassad.VerdictAction
+Kassad.Policies.ActionThresholds.Review.get -> double?
+Kassad.Policies.ActionThresholds.Review.init -> void
+Kassad.Policies.ChoiceRule
+Kassad.Policies.ChoiceRule.<Clone>$() -> Kassad.Policies.ChoiceRule!
+Kassad.Policies.ChoiceRule.Action.get -> Kassad.VerdictAction
+Kassad.Policies.ChoiceRule.Action.init -> void
+Kassad.Policies.ChoiceRule.ChoiceRule(Kassad.VerdictAction Action, double MinConfidence = 0) -> void
+Kassad.Policies.ChoiceRule.Deconstruct(out Kassad.VerdictAction Action, out double MinConfidence) -> void
+Kassad.Policies.ChoiceRule.Equals(Kassad.Policies.ChoiceRule? other) -> bool
+Kassad.Policies.ChoiceRule.MinConfidence.get -> double
+Kassad.Policies.ChoiceRule.MinConfidence.init -> void
+Kassad.Policies.Policy
+Kassad.Policies.Policy.<Clone>$() -> Kassad.Policies.Policy!
+Kassad.Policies.Policy.ChoiceRules.get -> System.Collections.Generic.IReadOnlyDictionary<string!, Kassad.Policies.ChoiceRule!>?
+Kassad.Policies.Policy.ChoiceRules.init -> void
+Kassad.Policies.Policy.Description.get -> string?
+Kassad.Policies.Policy.Description.init -> void
+Kassad.Policies.Policy.Equals(Kassad.Policies.Policy? other) -> bool
+Kassad.Policies.Policy.Id.get -> string!
+Kassad.Policies.Policy.Id.init -> void
+Kassad.Policies.Policy.MinConfidence.get -> double
+Kassad.Policies.Policy.MinConfidence.init -> void
+Kassad.Policies.Policy.OnError.get -> Kassad.ErrorPolicy
+Kassad.Policies.Policy.OnError.init -> void
+Kassad.Policies.Policy.Policy() -> void
+Kassad.Policies.Policy.Question.get -> Kassad.Question!
+Kassad.Policies.Policy.Question.init -> void
+Kassad.Policies.Policy.Stage.get -> Kassad.Stage
+Kassad.Policies.Policy.Stage.init -> void
+Kassad.Policies.Policy.Thresholds.get -> Kassad.Policies.ActionThresholds?
+Kassad.Policies.Policy.Thresholds.init -> void
+Kassad.Policies.PolicySet
+Kassad.Policies.PolicySet.All.get -> System.Collections.Immutable.ImmutableArray<Kassad.Policies.Policy!>
+Kassad.Policies.PolicySet.ForStage(Kassad.Stage stage) -> System.Collections.Immutable.ImmutableArray<Kassad.Policies.Policy!>
+Kassad.Policies.PolicyValidationException
+Kassad.Policies.PolicyValidationException.Errors.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Kassad.Policies.PolicyValidationException.PolicyValidationException(System.Collections.Generic.IReadOnlyList<string!>! errors) -> void
+override Kassad.Policies.ActionThresholds.Equals(object? obj) -> bool
+override Kassad.Policies.ActionThresholds.GetHashCode() -> int
+override Kassad.Policies.ActionThresholds.ToString() -> string!
+override Kassad.Policies.ChoiceRule.Equals(object? obj) -> bool
+override Kassad.Policies.ChoiceRule.GetHashCode() -> int
+override Kassad.Policies.ChoiceRule.ToString() -> string!
+override Kassad.Policies.Policy.Equals(object? obj) -> bool
+override Kassad.Policies.Policy.GetHashCode() -> int
+override Kassad.Policies.Policy.ToString() -> string!
+static Kassad.Engine.VerdictResolver.FromError(Kassad.Policies.Policy! policy, System.Exception! error) -> Kassad.Verdict!
+static Kassad.Engine.VerdictResolver.Resolve(Kassad.Policies.Policy! policy, Kassad.Answer! answer) -> Kassad.Verdict!
+static Kassad.KassadServiceCollectionExtensions.AddKassad(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, Kassad.Policies.PolicySet! policies) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static Kassad.KassadServiceCollectionExtensions.AddKassad(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! policyFilePath) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static Kassad.Policies.ActionThresholds.operator !=(Kassad.Policies.ActionThresholds? left, Kassad.Policies.ActionThresholds? right) -> bool
+static Kassad.Policies.ActionThresholds.operator ==(Kassad.Policies.ActionThresholds? left, Kassad.Policies.ActionThresholds? right) -> bool
+static Kassad.Policies.ChoiceRule.operator !=(Kassad.Policies.ChoiceRule? left, Kassad.Policies.ChoiceRule? right) -> bool
+static Kassad.Policies.ChoiceRule.operator ==(Kassad.Policies.ChoiceRule? left, Kassad.Policies.ChoiceRule? right) -> bool
+static Kassad.Policies.Policy.operator !=(Kassad.Policies.Policy? left, Kassad.Policies.Policy? right) -> bool
+static Kassad.Policies.Policy.operator ==(Kassad.Policies.Policy? left, Kassad.Policies.Policy? right) -> bool
+static Kassad.Policies.PolicySet.FromFile(string! path) -> Kassad.Policies.PolicySet!
+static Kassad.Policies.PolicySet.FromJson(string! json) -> Kassad.Policies.PolicySet!
+static Kassad.Policies.PolicySet.FromPolicies(System.Collections.Generic.IEnumerable<Kassad.Policies.Policy!>! policies) -> Kassad.Policies.PolicySet!

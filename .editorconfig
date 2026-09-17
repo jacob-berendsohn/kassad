@@ -33,3 +33,8 @@ dotnet_diagnostic.IDE0005.severity = warning   # unnecessary using
 dotnet_diagnostic.CA1848.severity = none       # LoggerMessage delegates — revisit when hot-path logging exists
 dotnet_diagnostic.CA1031.severity = none       # catch general exception — deliberate at fail_open/fail_closed boundaries
 dotnet_diagnostic.CA2007.severity = none       # ConfigureAwait — library code, but we're not targeting UI sync contexts
+
+[tests/**.cs]
+# Rules from latest-recommended that only make sense in shipped code. Everything in src/ keeps them on.
+dotnet_diagnostic.CA1711.severity = none       # xunit [CollectionDefinition] classes are conventionally named *Collection
+dotnet_diagnostic.CA1861.severity = none       # array literals in assertions run once; the per-call allocation the rule avoids is irrelevant in tests

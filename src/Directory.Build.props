@@ -5,11 +5,10 @@
     <IsPackable>true</IsPackable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <!--
-      Public API tracking. RS0016/RS0017 are downgraded to warnings until the API surface is
-      baselined (roadmap 0.4). After baselining, delete WarningsNotAsErrors so any un-tracked
-      public change fails the build.
+      Public API tracking. The surface was baselined in PublicAPI.Unshipped.txt in roadmap 0.4, so
+      RS0016/RS0017 (plus RS0026/RS0027 for overloads) are errors like every other warning: a public
+      change that is not reflected in the API file fails the build. Update it with the RS0016 code fix.
     -->
-    <WarningsNotAsErrors>$(WarningsNotAsErrors);RS0016;RS0017;RS0026;RS0027</WarningsNotAsErrors>
   </PropertyGroup>
 
   <ItemGroup>

@@ -2,7 +2,7 @@
 
 ## Status
 
-Active development, pre-release. Scaffold build-verified and committed 2026-09-17; roadmap 0.1 finished locally the same day (owner placeholder, `Authors`, package bumps) with the CI leg pending the first PR; nothing published to nuget.org yet. Target: `0.1.0` with a numbers table in the README.
+Active development, pre-release. Scaffold build-verified and committed 2026-09-17; roadmap 0.1 (owner placeholder, `Authors`, package bumps) merged the same day via PR #9; roadmap 0.2 (unit tests green in CI) done locally the same day with its CI leg pending the PR; nothing published to nuget.org yet. Target: `0.1.0` with a numbers table in the README.
 
 ## Current stack
 
@@ -84,3 +84,4 @@ Active development, pre-release. Scaffold build-verified and committed 2026-09-1
 - **2026-09-17** — Scaffold build-verified: four restore/compile blockers fixed, `nuget.config` added, two decisions recorded, two known bugs logged for roadmap 1.1 and 2.1. Baseline committed.
 - **2026-09-17** — Phase prompts generated from roadmap.
 - **2026-09-17** — Roadmap 0.1 done locally: GitHub owner placeholder replaced with `jacob-berendsohn` in nine files, `Authors` set to `Jacob Berendsohn`, every pin in `Directory.Packages.props` at the latest stable release with a green build after each group and tests green on both TFMs. Package-version caveat resolved; sample pack-warning caveat added. CI leg awaits the first PR.
+- **2026-09-17** — Roadmap 0.2 done locally: both test projects green on net8.0 and net10.0 under the CI command (`--filter "Category!=Live"`, coverage collected) with no network access; `ci.yml` trx logger moved from `LogFileName=results.trx` to `LogFilePrefix=results` (per-TFM runs no longer overwrite each other; files land as `results_<tfm>_<timestamp>.trx` under each project's `TestResults/`, matched by the existing upload glob); `CONTRIBUTING.md` now names the CI filters that enforce the Live trait. Verified that `--filter "Category=Live"` with no Live tests exits 0, so the `live` job on `main` is safe until 0.3. CI leg awaits the PR.

@@ -113,7 +113,9 @@ public sealed class KassadInboundMiddleware
         }
 
         context.Response.StatusCode = status;
-        context.Response.ContentType = "application/problem+json";
-        await context.Response.WriteAsJsonAsync(problem, context.RequestAborted).ConfigureAwait(false);
+
+        // The content type travels with the write: the two-argument WriteAsJsonAsync overload resets Content-Type to
+        // application/json; charset=utf-8, undoing any value set on the response beforehand (roadmap 2.1).
+        await context.Response.WriteAsJsonAsync(problem, options: null, contentType: "application/problem+json", cancellationToken: context.RequestAborted).ConfigureAwait(false);
     }
 }

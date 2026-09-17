@@ -29,6 +29,7 @@ This directory holds every project-specific reference document, planning artifac
 *Updated as significant documents are added. Each entry is one line.*
 
 - `roadmap.md` — phased plan to `0.1.0`; consumed by `generate-phase-prompts`.
+- `project-prompts.md` — one prompt per roadmap sub-phase, generated from `roadmap.md`; regenerate rather than edit.
 - `specs/policy-file-format.md` — the policy JSON format and its validation rules.
 - `specs/rejection-response.md` — HTTP shape of rejections from the middleware and the handler.
 - `research/typesafe-api-notes.md` — System One API facts with source URLs; the fixtures in tests were transcribed from these.

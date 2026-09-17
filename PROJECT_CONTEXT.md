@@ -66,6 +66,7 @@ Active development, pre-release. Scaffold build-verified and committed 2026-09-1
 ## Docs/ index
 
 - `Docs/roadmap.md` — phased plan to `0.1.0`, one sub-phase per agent session.
+- `Docs/project-prompts.md` — one prompt per roadmap sub-phase, generated from the roadmap by `generate-phase-prompts`; regenerate when the roadmap changes, never edit in place.
 - `Docs/specs/policy-file-format.md` — the policy JSON format, field by field, with validation rules.
 - `Docs/specs/rejection-response.md` — shape of the 403 problem+json and the handler's synthesized error.
 - `Docs/research/typesafe-api-notes.md` — what we know about the System One API, with source URLs.
@@ -80,3 +81,4 @@ Active development, pre-release. Scaffold build-verified and committed 2026-09-1
 
 - **2026-09-17** — PROJECT_CONTEXT.md created with the initial scaffold. Docs/ directory scaffolded. Roadmap created for "publish Kassad 0.1.0 with a numbers table".
 - **2026-09-17** — Scaffold build-verified: four restore/compile blockers fixed, `nuget.config` added, two decisions recorded, two known bugs logged for roadmap 1.1 and 2.1. Baseline committed.
+- **2026-09-17** — Phase prompts generated from roadmap.

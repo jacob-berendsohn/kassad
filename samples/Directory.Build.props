@@ -5,6 +5,8 @@
     <!-- IDE0005 (unnecessary usings) only runs in build when a documentation file is generated; CS1591 (missing XML docs) is noise here. -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <!-- Microsoft.NET.Sdk.Web turns this on, so a solution-level dotnet pack printed a code-less "packaging has been disabled" line for the sample; nothing under samples/ is meant to be packed. Approved 2026-09-17, roadmap 0.5. -->
+    <WarnOnPackingNonPackableProject>false</WarnOnPackingNonPackableProject>
     <TargetFrameworks></TargetFrameworks>
     <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>

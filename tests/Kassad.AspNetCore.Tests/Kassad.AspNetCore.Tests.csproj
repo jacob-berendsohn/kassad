@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Kassad.AspNetCore/Kassad.AspNetCore.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- WebApplicationFactory and TestServer. Version pinned per target framework in Directory.Packages.props. -->
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+  </ItemGroup>
+  <ItemGroup>
+    <!--
+      Shared with Kassad.Tests as linked sources rather than through a project reference: a test assembly that
+      references another test assembly drags its generated entry point and test runner along.
+    -->
+    <Compile Include="../Kassad.Tests/FakeDecisionModel.cs" Link="Shared/FakeDecisionModel.cs" />
+    <Compile Include="../Kassad.Tests/TestPolicies.cs" Link="Shared/TestPolicies.cs" />
+  </ItemGroup>
+</Project>

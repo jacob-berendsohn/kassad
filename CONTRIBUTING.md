@@ -41,4 +41,5 @@ TYPESAFE_API_KEY=... dotnet run --project samples/Kassad.Sample.ChatApi
 
 - Conventional-ish commits are appreciated but not enforced. Clear messages are.
 - `CHANGELOG.md` gets an entry under Unreleased with every user-visible change.
-- Releases are tags: `git tag v0.1.0-preview.3 && git push --tags`. CI does the rest.
+- Releases are tags on `main`, pushed one at a time: `git tag v0.1.0-preview.3 && git push origin v0.1.0-preview.3`.
+  The `Release` workflow does the rest. Never `git push --tags`; it would publish every local tag.

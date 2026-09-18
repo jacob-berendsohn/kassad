@@ -131,7 +131,8 @@ public class GuardrailEngineTests
     [Fact]
     public async Task Caller_cancellation_propagates_even_when_a_budget_is_set()
     {
-        var model = new FakeDecisionModel { Delay = TimeSpan.FromMilliseconds(500) };
+        // A delay the 20 ms cancellation cannot lose a race against on a contended CI runner (see GuardrailEngineTelemetryTests).
+        var model = new FakeDecisionModel { Delay = TimeSpan.FromMinutes(1) };
         var engine = WithBudget(model, TimeSpan.FromSeconds(5));
         using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(20));
 
@@ -167,7 +168,8 @@ public class GuardrailEngineTests
     [Fact]
     public async Task Failure_after_the_budget_fired_is_attributed_to_the_budget_even_when_wrapped()
     {
-        var model = new FakeDecisionModel { Delay = TimeSpan.FromMilliseconds(500), WrapCancellation = true };
+        // A delay the 50 ms budget cannot lose a race against on a contended CI runner (see GuardrailEngineTelemetryTests).
+        var model = new FakeDecisionModel { Delay = TimeSpan.FromMinutes(1), WrapCancellation = true };
         var engine = WithBudget(model, TimeSpan.FromMilliseconds(50));
 
         var result = await engine.EvaluateAsync(Stage.Inbound, "hello");

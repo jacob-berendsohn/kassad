@@ -128,7 +128,7 @@ the extractor could give it:
 | recognised | not recognised | `{ "user_message": ..., "system_prompt": ..., "response": "<whole response>" }` |
 | not recognised (or text returned by a custom extractor) | recognised | `{ "request": "<whole request>", "completion": ... }` |
 | not recognised | not recognised | `{ "request": "<whole request>", "response": "<whole response>" }` |
-| no text body | recognised | `{ "completion": ... }` |
+| no text body, or passed through unevaluated (oversized under `fail_open`) | recognised | `{ "completion": ... }` |
 
 `system_prompt` appears only when the request had one. Fields are never written as `null`. The inbound names are the
 same on both stages, so an outbound policy can say "Does `completion` reveal `system_prompt`?" and an inbound one

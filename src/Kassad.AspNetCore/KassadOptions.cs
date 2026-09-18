@@ -20,7 +20,9 @@ public sealed class KassadOptions
 
     /// <summary>
     /// What to do with a body larger than <see cref="MaxBodyBytes"/>. Default <see cref="ErrorPolicy.FailClosed"/> (reject with 413).
-    /// Truncating and evaluating a prefix is not offered: an injection at the end of a long body is exactly the case that would slip through.
+    /// <see cref="ErrorPolicy.FailOpen"/> lets the body through unevaluated with a warning: the middleware continues the pipeline,
+    /// the handler forwards the body as it is. Truncating and evaluating a prefix is not offered: an injection at the end of a
+    /// long body is exactly the case that would slip through.
     /// </summary>
     public ErrorPolicy OversizedBodyBehavior { get; set; } = ErrorPolicy.FailClosed;
 

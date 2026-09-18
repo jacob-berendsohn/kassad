@@ -40,7 +40,7 @@ Content-Type: application/json
 { "error": { "type": "kassad_blocked", "message": "Inbound rejected by policy", "policies": null } }
 ```
 
-`type` is `kassad_blocked` for policy rejections and `kassad_oversized` (status 413) for bodies over the limit. Allowed responses carry `Kassad-Outcome: <allow|flag|review>` as a response header when `OutcomeHeaderName` is set.
+`type` is `kassad_blocked` for policy rejections and `kassad_oversized` (status 413) for bodies over the limit, by declared length or as measured while reading, under `OversizedBodyBehavior = fail_closed`; under `fail_open` an oversized body is passed through unevaluated with a warning and nothing is synthesized. Allowed responses carry `Kassad-Outcome: <allow|flag|review>` as a response header when `OutcomeHeaderName` is set.
 
 ## Not rejected
 

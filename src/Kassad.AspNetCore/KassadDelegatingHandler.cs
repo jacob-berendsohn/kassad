@@ -16,11 +16,22 @@ namespace Kassad.AspNetCore;
 /// <see cref="KassadOptions.RejectionStatusCode"/> so provider SDKs treat them as failed calls.
 /// </summary>
 /// <remarks>
+/// <para>
 /// Both bodies go through <see cref="KassadOptions.StateExtractor"/> first: by default an OpenAI chat-completions or
 /// Anthropic messages request is reduced to the user's latest message and the system prompt (<see cref="InboundState"/>),
 /// the response to the assistant's reply, and the outbound policies see them together as an <see cref="OutboundState"/>;
-/// a body of any other shape is evaluated whole. Streaming responses (<c>text/event-stream</c>) are passed through
-/// unevaluated with a warning; buffering them would defeat streaming. Token-level streaming evaluation is roadmap 3.4.
+/// a body of any other shape is evaluated whole.
+/// </para>
+/// <para>
+/// Streaming responses (<c>text/event-stream</c>) are passed through unevaluated with a warning; buffering
+/// them would defeat streaming. Token-level streaming evaluation is roadmap 3.4.
+/// </para>
+/// <para>
+/// A body is read up to <see cref="KassadOptions.MaxBodyBytes"/> plus one byte, which is enough to know whether it fits.
+/// One that does is extracted, evaluated and forwarded from the bytes read. One that does not is rejected with 413 under
+/// <see cref="ErrorPolicy.FailClosed"/>; under <see cref="ErrorPolicy.FailOpen"/> it is passed through unevaluated
+/// with a warning, the bytes already read ahead of whatever remains unread, so nothing is buffered beyond the limit.
+/// </para>
 /// </remarks>
 public sealed class KassadDelegatingHandler : DelegatingHandler
 {
@@ -45,20 +56,30 @@ public sealed class KassadDelegatingHandler : DelegatingHandler
 
         string? requestBody = null;
         object? requestState = null;
-        if (request.Content is not null && IsText(request.Content.Headers.ContentType))
+        if (request.Content is { } requestContent && IsText(requestContent.Headers.ContentType))
         {
-            requestBody = await ReadBoundedAsync(request.Content, cancellationToken).ConfigureAwait(false);
-            if (requestBody is null)
+            var body = await ReadBoundedAsync(requestContent, cancellationToken).ConfigureAwait(false);
+            if (body.Oversized)
             {
-                return Oversized(request, "request");
-            }
+                if (_options.OversizedBodyBehavior == ErrorPolicy.FailClosed)
+                {
+                    return Oversized(request, "request");
+                }
 
-            // Null from the extractor means "no shape I recognise": the whole body is the state, as it was before extraction existed.
-            requestState = _options.StateExtractor.Extract(requestBody, request.Content.Headers.ContentType?.ToString(), Stage.Inbound) ?? requestBody;
-            var inbound = await _engine.EvaluateAsync(Stage.Inbound, requestState, cancellationToken).ConfigureAwait(false);
-            if (inbound.Outcome >= _options.RejectAt)
+                request.Content = PassThrough(request, "request", body);
+            }
+            else
             {
-                return Rejection(request, Stage.Inbound, inbound);
+                requestBody = body.Text;
+                request.Content = body.Reattach();
+
+                // Null from the extractor means "no shape I recognise": the whole body is the state, as it was before extraction existed.
+                requestState = _options.StateExtractor.Extract(requestBody, requestContent.Headers.ContentType?.ToString(), Stage.Inbound) ?? requestBody;
+                var inbound = await _engine.EvaluateAsync(Stage.Inbound, requestState, cancellationToken).ConfigureAwait(false);
+                if (inbound.Outcome >= _options.RejectAt)
+                {
+                    return Rejection(request, Stage.Inbound, inbound);
+                }
             }
         }
 
@@ -75,13 +96,20 @@ public sealed class KassadDelegatingHandler : DelegatingHandler
             return response;
         }
 
-        var responseBody = await ReadBoundedAsync(response.Content, cancellationToken).ConfigureAwait(false);
-        if (responseBody is null)
+        var responseContent = await ReadBoundedAsync(response.Content, cancellationToken).ConfigureAwait(false);
+        if (responseContent.Oversized)
         {
-            response.Dispose();
-            return Oversized(request, "response");
+            if (_options.OversizedBodyBehavior == ErrorPolicy.FailClosed)
+            {
+                response.Dispose();
+                return Oversized(request, "response");
+            }
+
+            response.Content = PassThrough(request, "response", responseContent);
+            return response;
         }
 
+        var responseBody = responseContent.Text;
         var responseState = _options.StateExtractor.Extract(responseBody, response.Content.Headers.ContentType?.ToString(), Stage.Outbound);
         var state = OutboundState.From(requestBody, requestState, responseBody, responseState);
         var outbound = await _engine.EvaluateAsync(Stage.Outbound, state, cancellationToken).ConfigureAwait(false);
@@ -91,10 +119,8 @@ public sealed class KassadDelegatingHandler : DelegatingHandler
             return Rejection(request, Stage.Outbound, outbound);
         }
 
-        // Content was buffered by ReadBoundedAsync; re-materialize it so the caller can read it normally.
-        var replacement = new StringContent(responseBody, Encoding.UTF8);
-        replacement.Headers.ContentType = response.Content.Headers.ContentType;
-        response.Content = replacement;
+        // The bounded read consumed the provider's stream; hand the caller the bytes it read under the provider's own content headers.
+        response.Content = responseContent.Reattach();
 
         if (_options.OutcomeHeaderName is { } header)
         {
@@ -117,7 +143,7 @@ public sealed class KassadDelegatingHandler : DelegatingHandler
     /// <c>request</c> and <c>response</c>, each present only when it has a value, so an outbound policy can refer to
     /// the same names an inbound policy uses. <c>Docs/specs/state-extraction.md</c> is the spec.
     /// </remarks>
-    /// <param name="Request">The request as the inbound stage saw it, when that was text and not an <see cref="InboundState"/>: the body sent to the provider, or the text a custom extractor returned for it. <c>null</c> when the request had no text body or when <see cref="UserMessage"/> carries its content.</param>
+    /// <param name="Request">The request as the inbound stage saw it, when that was text and not an <see cref="InboundState"/>: the body sent to the provider, or the text a custom extractor returned for it. <c>null</c> when the request had no text body, when it was passed through unevaluated because it exceeded <see cref="KassadOptions.MaxBodyBytes"/> under <see cref="ErrorPolicy.FailOpen"/>, or when <see cref="UserMessage"/> carries its content.</param>
     /// <param name="Response">The response body from the provider, when the extractor did not recognise it. <c>null</c> when <see cref="Completion"/> carries its content.</param>
     public sealed record OutboundState(string? Request, string? Response)
     {
@@ -166,29 +192,57 @@ public sealed class KassadDelegatingHandler : DelegatingHandler
         }
     }
 
-    private async Task<string?> ReadBoundedAsync(HttpContent content, CancellationToken cancellationToken)
+    /// <summary>
+    /// Read <paramref name="content"/> up to <see cref="KassadOptions.MaxBodyBytes"/> plus one byte. The extra byte tells an
+    /// oversized body from one that exactly fits without consuming anything past it; a body whose declared length is already
+    /// over the limit is not read at all.
+    /// </summary>
+    private async Task<BoundedBody> ReadBoundedAsync(HttpContent content, CancellationToken cancellationToken)
     {
-        if (content.Headers.ContentLength is { } declared && declared > _options.MaxBodyBytes)
+        long limit = _options.MaxBodyBytes;
+        var declared = content.Headers.ContentLength;
+        if (declared > limit)
         {
-            return null;
+            return BoundedBody.DeclaredOversized(content);
         }
 
-        var bytes = await content.ReadAsByteArrayAsync(cancellationToken).ConfigureAwait(false);
-        return bytes.LongLength > _options.MaxBodyBytes ? null : Encoding.UTF8.GetString(bytes);
+        // A body has to fit in one array to be evaluated, so anything past int.MaxValue - 1 bytes counts as oversized however high the limit is set.
+        int cap = (int)Math.Min(limit, int.MaxValue - 1) + 1;
+        var stream = await content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+        var buffer = new byte[(int)Math.Min(cap, (declared ?? 4096) + 1)];
+        int length = 0;
+        while (true)
+        {
+            if (length == buffer.Length)
+            {
+                if (length == cap)
+                {
+                    return BoundedBody.Overflowing(content, buffer, length, stream);
+                }
+
+                Array.Resize(ref buffer, (int)Math.Min(2L * buffer.Length, cap));
+            }
+
+            int read = await stream.ReadAsync(buffer.AsMemory(length), cancellationToken).ConfigureAwait(false);
+            if (read == 0)
+            {
+                return BoundedBody.Complete(content, buffer, length);
+            }
+
+            length += read;
+        }
     }
 
     private HttpResponseMessage Oversized(HttpRequestMessage request, string which)
     {
-        if (_options.OversizedBodyBehavior == ErrorPolicy.FailOpen)
-        {
-            // Caller asked to let oversized bodies through unevaluated; nothing to reject. Signal with a header instead.
-            throw new InvalidOperationException(
-                $"Kassad: {which} body exceeded MaxBodyBytes and OversizedBodyBehavior is FailOpen, but the handler has already consumed the content. " +
-                "Raise MaxBodyBytes or use FailClosed. (Roadmap 3.2 adds pass-through for oversized bodies.)");
-        }
-
         _logger.LogWarning("Kassad: {Which} body to {Uri} exceeded MaxBodyBytes {Max}; rejecting (fail_closed)", which, request.RequestUri, _options.MaxBodyBytes);
         return Build(request, (int)HttpStatusCode.RequestEntityTooLarge, "kassad_oversized", $"{which} body too large to evaluate", null);
+    }
+
+    private HttpContent PassThrough(HttpRequestMessage request, string which, BoundedBody body)
+    {
+        _logger.LogWarning("Kassad: {Which} body to {Uri} exceeded MaxBodyBytes {Max}; passing through unevaluated (fail_open)", which, request.RequestUri, _options.MaxBodyBytes);
+        return body.Reattach();
     }
 
     private HttpResponseMessage Rejection(HttpRequestMessage request, Stage stage, StageResult result)
@@ -230,4 +284,233 @@ public sealed class KassadDelegatingHandler : DelegatingHandler
 
     private static bool IsEventStream(MediaTypeHeaderValue? type) =>
         string.Equals(type?.MediaType, "text/event-stream", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Copy every content header as it was sent, <c>Content-Length</c> and <c>Content-Type</c> included, without re-validating it.</summary>
+    private static void CopyHeaders(HttpContentHeaders from, HttpContentHeaders to)
+    {
+        foreach (var header in from.NonValidated)
+        {
+            to.TryAddWithoutValidation(header.Key, header.Value);
+        }
+    }
+
+    /// <summary>
+    /// What <see cref="ReadBoundedAsync"/> took from a content, and the content that replaces it. Reading through the content's
+    /// stream moves the same stream the content would send from, so once a body has been read it is sent from the
+    /// bytes read (<see cref="BufferedContent"/>), or from those bytes followed by the rest of the stream when the read stopped
+    /// at the limit (<see cref="ResumedContent"/>). A body oversized by its declared length was never read and stays as it is.
+    /// </summary>
+    private sealed class BoundedBody
+    {
+        private readonly HttpContent _content;
+        private readonly byte[]? _bytes;
+        private readonly int _length;
+        private readonly Stream? _remainder;
+
+        private BoundedBody(HttpContent content, byte[]? bytes, int length, Stream? remainder, bool oversized)
+        {
+            _content = content;
+            _bytes = bytes;
+            _length = length;
+            _remainder = remainder;
+            Oversized = oversized;
+        }
+
+        /// <summary>True when the body is larger than <see cref="KassadOptions.MaxBodyBytes"/>, by declaration or by measure.</summary>
+        public bool Oversized { get; }
+
+        /// <summary>The whole body decoded as UTF-8. Only meaningful when the body was read to its end.</summary>
+        public string Text => Encoding.UTF8.GetString(_bytes!, 0, _length);
+
+        public static BoundedBody DeclaredOversized(HttpContent content) => new(content, null, 0, null, oversized: true);
+
+        public static BoundedBody Complete(HttpContent content, byte[] bytes, int length) => new(content, bytes, length, null, oversized: false);
+
+        public static BoundedBody Overflowing(HttpContent content, byte[] bytes, int length, Stream remainder) => new(content, bytes, length, remainder, oversized: true);
+
+        /// <summary>The content to send or return in place of the one read: the original itself when nothing was read from it.</summary>
+        public HttpContent Reattach()
+        {
+            if (_bytes is null)
+            {
+                return _content;
+            }
+
+            return _remainder is null
+                ? new BufferedContent(_content, _bytes, _length)
+                : new ResumedContent(_content, _bytes, _length, _remainder);
+        }
+    }
+
+    /// <summary>
+    /// A body the bounded read consumed to its end, re-materialized over the bytes it read under the original content's headers.
+    /// Readable and sendable any number of times, like any <see cref="ByteArrayContent"/>. Disposing it disposes the content it
+    /// stands in for.
+    /// </summary>
+    private sealed class BufferedContent : ByteArrayContent
+    {
+        private readonly HttpContent _original;
+
+        public BufferedContent(HttpContent original, byte[] bytes, int length)
+            : base(bytes, 0, length)
+        {
+            _original = original;
+            CopyHeaders(original.Headers, Headers);
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _original.Dispose();
+            }
+
+            base.Dispose(disposing);
+        }
+    }
+
+    /// <summary>
+    /// An oversized body under <see cref="ErrorPolicy.FailOpen"/>: the bytes the bounded read had taken, followed by whatever it
+    /// left unread in the original content, under the original content's headers. Like a response body straight off the wire it
+    /// can be sent or read once; a second attempt throws rather than sending a truncated body. Disposing it disposes the
+    /// original content.
+    /// </summary>
+    private sealed class ResumedContent : HttpContent
+    {
+        private readonly HttpContent _original;
+        private readonly PrefixedStream _body;
+        private bool _consumed;
+
+        public ResumedContent(HttpContent original, byte[] prefix, int prefixLength, Stream remainder)
+        {
+            _original = original;
+            _body = new PrefixedStream(prefix, prefixLength, remainder);
+            CopyHeaders(original.Headers, Headers);
+        }
+
+        protected override Task SerializeToStreamAsync(Stream stream, TransportContext? context) =>
+            SerializeToStreamAsync(stream, context, CancellationToken.None);
+
+        protected override Task SerializeToStreamAsync(Stream stream, TransportContext? context, CancellationToken cancellationToken) =>
+            Consume().CopyToAsync(stream, cancellationToken);
+
+        protected override void SerializeToStream(Stream stream, TransportContext? context, CancellationToken cancellationToken) =>
+            Consume().CopyTo(stream);
+
+        protected override Task<Stream> CreateContentReadStreamAsync() => Task.FromResult<Stream>(Consume());
+
+        protected override Stream CreateContentReadStream(CancellationToken cancellationToken) => Consume();
+
+        protected override bool TryComputeLength(out long length)
+        {
+            // Only the original content knew its length; the Content-Length header it declared, if any, was copied with the rest.
+            length = 0;
+            return false;
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _body.Dispose();
+                _original.Dispose();
+            }
+
+            base.Dispose(disposing);
+        }
+
+        private PrefixedStream Consume()
+        {
+            if (_consumed)
+            {
+                throw new InvalidOperationException("Kassad: this body was passed through unevaluated and has already been read; it cannot be read again.");
+            }
+
+            _consumed = true;
+            return _body;
+        }
+    }
+
+    /// <summary>
+    /// Read-only, forward-only stream over a buffered prefix followed by the rest of another stream. Disposing it disposes
+    /// that stream.
+    /// </summary>
+    private sealed class PrefixedStream : Stream
+    {
+        private readonly byte[] _prefix;
+        private readonly int _prefixLength;
+        private readonly Stream _remainder;
+        private int _position;
+
+        public PrefixedStream(byte[] prefix, int prefixLength, Stream remainder)
+        {
+            _prefix = prefix;
+            _prefixLength = prefixLength;
+            _remainder = remainder;
+        }
+
+        public override bool CanRead => true;
+
+        public override bool CanSeek => false;
+
+        public override bool CanWrite => false;
+
+        public override long Length => throw new NotSupportedException();
+
+        public override long Position
+        {
+            get => throw new NotSupportedException();
+            set => throw new NotSupportedException();
+        }
+
+        public override void Flush()
+        {
+        }
+
+        public override int Read(byte[] buffer, int offset, int count)
+        {
+            ValidateBufferArguments(buffer, offset, count);
+            return Read(buffer.AsSpan(offset, count));
+        }
+
+        public override int Read(Span<byte> buffer)
+        {
+            if (_position < _prefixLength)
+            {
+                int count = Math.Min(buffer.Length, _prefixLength - _position);
+                _prefix.AsSpan(_position, count).CopyTo(buffer);
+                _position += count;
+                return count;
+            }
+
+            return _remainder.Read(buffer);
+        }
+
+        public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        {
+            ValidateBufferArguments(buffer, offset, count);
+            return ReadAsync(buffer.AsMemory(offset, count), cancellationToken).AsTask();
+        }
+
+        public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default) =>
+            _position < _prefixLength
+                ? new ValueTask<int>(Read(buffer.Span))
+                : _remainder.ReadAsync(buffer, cancellationToken);
+
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+
+        public override void SetLength(long value) => throw new NotSupportedException();
+
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _remainder.Dispose();
+            }
+
+            base.Dispose(disposing);
+        }
+    }
 }

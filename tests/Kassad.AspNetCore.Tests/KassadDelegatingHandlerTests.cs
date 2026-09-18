@@ -24,6 +24,9 @@ public class KassadDelegatingHandlerTests
     private const string ShortPrompt = """{"messages":[{"role":"user","content":"hi"}]}""";
     private const string Completion = """{"id":"chatcmpl-1","choices":[{"message":{"role":"assistant","content":"I can't help with that."}}]}""";
 
+    /// <summary>The <see cref="KassadOptions.MaxBodyBytes"/> default; the 2 MiB bodies from <see cref="LargeBody"/> are twice it.</summary>
+    private const long DefaultMaxBodyBytes = 1024 * 1024;
+
     private static readonly Uri Completions = new("v1/chat/completions", UriKind.Relative);
     private static readonly Uri CompletionsAbsolute = new(KassadHandlerHarness.ProviderBaseAddress, Completions);
 
@@ -329,42 +332,228 @@ public class KassadDelegatingHandlerTests
         Assert.Contains("request body to", warning.Message, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public async Task Oversized_request_throws_when_fail_open()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Oversized_request_passes_through_byte_identically_when_fail_open(bool declaredLength)
     {
-        // Pins the documented caveat: the handler has consumed the content by the time it knows the size, so fail_open
-        // cannot forward it. Roadmap 3.2 replaces this with a bounded read and pass-through.
-        using var harness = new KassadHandlerHarness(Injection(0.05), o =>
-        {
-            o.MaxBodyBytes = 64;
-            o.OversizedBodyBehavior = ErrorPolicy.FailOpen;
-        });
+        // Roadmap 3.2 verification: a 2 MiB request over the 1 MiB default limit reaches the provider whole and unevaluated.
+        var prompt = LargeBody();
+        using var harness = new KassadHandlerHarness(Injection(0.95).Answer("harm_severity", Harm(0.2)), o => o.OversizedBodyBehavior = ErrorPolicy.FailOpen); // inbound would block if consulted
         using var client = harness.CreateClient();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => client.PostAsync(Completions, Body(Prompt)));
+        using var content = Bodies.Of(prompt, Json, declaredLength);
+        using var response = await client.PostAsync(Completions, content);
 
-        Assert.Contains("request body exceeded MaxBodyBytes", ex.Message, StringComparison.Ordinal);
-        Assert.Contains("Roadmap 3.2", ex.Message, StringComparison.Ordinal);
-        Assert.Empty(harness.Provider.Requests);
-        Assert.Empty(harness.Model.Requests);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("allow", Outcome(response)); // the response was still evaluated
+
+        var forwarded = Assert.Single(harness.Provider.Requests);
+        Assert.Equal(Json, forwarded.Content!.Headers.ContentType?.ToString());
+        AssertSameBytes(prompt, Assert.Single(harness.Provider.RequestBodies));
+        if (declaredLength)
+        {
+            Assert.Same(content, forwarded.Content); // over the limit by declaration: nothing was read and the content went as it was
+        }
+        else
+        {
+            Assert.NotSame(content, forwarded.Content); // read up to one byte past the limit, then re-attached ahead of the rest of the stream
+        }
+
+        var outbound = Assert.Single(harness.Model.Requests);
+        Assert.Equal(new KassadDelegatingHandler.OutboundState(null, "{}"), outbound.State);
+
+        var warning = Assert.Single(harness.Logger.Collector.GetSnapshot());
+        Assert.Equal(LogLevel.Warning, warning.Level);
+        Assert.Equal($"Kassad: request body to {CompletionsAbsolute} exceeded MaxBodyBytes {DefaultMaxBodyBytes}; passing through unevaluated (fail_open)", warning.Message);
     }
 
     [Fact]
-    public async Task Oversized_response_throws_when_fail_open()
+    public async Task Oversized_request_is_rejected_after_reading_one_byte_past_the_limit_when_fail_closed()
     {
-        using var harness = new KassadHandlerHarness(Injection(0.05), o =>
+        // Roadmap 3.2 verification, fail_closed half: the same 2 MiB request is answered 413 without the provider seeing it,
+        // and the bounded read took MaxBodyBytes + 1 bytes off the undeclared-length stream and not one more.
+        using var stream = new UnseekableStream(LargeBody());
+        using var harness = new KassadHandlerHarness(Injection(0.05)); // OversizedBodyBehavior defaults to fail_closed
+        using var client = harness.CreateClient();
+
+        using var response = await client.PostAsync(Completions, Body(stream, Json));
+
+        Assert.Equal(HttpStatusCode.RequestEntityTooLarge, response.StatusCode);
+        Assert.Equal("kassad_oversized", (await ReadErrorAsync(response)).GetProperty("type").GetString());
+        Assert.Empty(harness.Provider.Requests);
+        Assert.Empty(harness.Model.Requests);
+        Assert.Equal(DefaultMaxBodyBytes + 1, stream.BytesRead);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Oversized_response_passes_through_byte_identically_when_fail_open(bool declaredLength)
+    {
+        var completion = LargeBody();
+        HttpContent? sent = null;
+        using var harness = new KassadHandlerHarness(Injection(0.05).Answer("harm_severity", Harm(3.0)), o => o.OversizedBodyBehavior = ErrorPolicy.FailOpen); // outbound would block if consulted
+        harness.Provider.Respond(() =>
         {
-            o.MaxBodyBytes = 64;
-            o.OversizedBodyBehavior = ErrorPolicy.FailOpen;
+            sent = Bodies.Of(completion, Json, declaredLength);
+            return new HttpResponseMessage(HttpStatusCode.OK) { Content = sent };
         });
+        using var client = harness.CreateClient();
+
+        using var response = await client.PostAsync(Completions, Body(ShortPrompt));
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Same(harness.Provider.LastResponse, response);
+        Assert.Null(Outcome(response));
+        Assert.Equal(Json, response.Content.Headers.ContentType?.ToString());
+        AssertSameBytes(completion, await response.Content.ReadAsByteArrayAsync());
+        if (declaredLength)
+        {
+            Assert.Same(sent, response.Content); // over the limit by declaration: nothing was read and the content came back as it was
+        }
+        else
+        {
+            Assert.NotSame(sent, response.Content); // read up to one byte past the limit, then re-attached ahead of the rest of the stream
+        }
+
+        var inbound = Assert.Single(harness.Model.Requests); // the outbound stage never ran
+        Assert.Equal("prompt_injection", Assert.Single(inbound.Questions.Keys));
+
+        var warning = Assert.Single(harness.Logger.Collector.GetSnapshot());
+        Assert.Equal(LogLevel.Warning, warning.Level);
+        Assert.Equal($"Kassad: response body to {CompletionsAbsolute} exceeded MaxBodyBytes {DefaultMaxBodyBytes}; passing through unevaluated (fail_open)", warning.Message);
+    }
+
+    [Fact]
+    public async Task Oversized_response_streams_the_rest_to_the_caller_when_fail_open()
+    {
+        // The bounded read stops one byte past the limit. The caller's stream serves those bytes first and then reads on from
+        // the provider's stream, which is consumed only as the caller reads; like a body straight off the wire it can be read once.
+        var completion = LargeBody();
+        using var stream = new UnseekableStream(completion);
+        using var harness = new KassadHandlerHarness(Injection(0.05).Answer("harm_severity", Harm(3.0)), o => o.OversizedBodyBehavior = ErrorPolicy.FailOpen);
+        harness.Provider.Respond(() => new HttpResponseMessage(HttpStatusCode.OK) { Content = Body(stream, Json) });
+        using var client = harness.CreateClient();
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, Completions) { Content = Body(ShortPrompt) };
+        using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+
+        Assert.Equal(DefaultMaxBodyBytes + 1, stream.BytesRead);
+        Assert.Null(response.Content.Headers.ContentLength); // undeclared going in, undeclared coming out
+
+        using var body = await response.Content.ReadAsStreamAsync();
+        Assert.True(body.CanRead);
+        Assert.False(body.CanSeek);
+        Assert.False(body.CanWrite);
+        Assert.Throws<NotSupportedException>(() => body.Length);
+        Assert.Throws<NotSupportedException>(() => body.Position);
+        Assert.Throws<NotSupportedException>(() => body.Position = 0);
+        Assert.Throws<NotSupportedException>(() => body.Seek(0, SeekOrigin.Begin));
+        Assert.Throws<NotSupportedException>(() => body.SetLength(0));
+        Assert.Throws<NotSupportedException>(() => body.Write(completion, 0, 1));
+        body.Flush(); // a no-op, not an error
+
+        using var received = new MemoryStream();
+        var chunk = new byte[1000];
+#pragma warning disable CA1835 // the array-based overload is what is under test here; CopyToAsync below takes the memory-based one
+        int read = await body.ReadAsync(chunk, 0, chunk.Length);
+#pragma warning restore CA1835
+        received.Write(chunk, 0, read);
+        await body.CopyToAsync(received);
+
+        AssertSameBytes(completion, received.ToArray());
+        Assert.Equal(completion.LongLength, stream.BytesRead);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => response.Content.ReadAsByteArrayAsync());
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Oversized_response_can_be_read_synchronously_when_fail_open(bool copy)
+    {
+        // The synchronous HttpContent surface (ReadAsStream, CopyTo) sees the same bytes as the asynchronous one.
+        var completion = LargeBody();
+        using var harness = new KassadHandlerHarness(Injection(0.05).Answer("harm_severity", Harm(3.0)), o => o.OversizedBodyBehavior = ErrorPolicy.FailOpen);
+        harness.Provider.Respond(HttpStatusCode.OK, completion, Json, declareLength: false);
+        using var client = harness.CreateClient();
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, Completions) { Content = Body(ShortPrompt) };
+        using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+
+        using var received = new MemoryStream();
+        if (copy)
+        {
+            response.Content.CopyTo(received, null, CancellationToken.None);
+        }
+        else
+        {
+            using var body = response.Content.ReadAsStream();
+            body.CopyTo(received);
+        }
+
+        AssertSameBytes(completion, received.ToArray());
+    }
+
+    [Fact]
+    public async Task Allow_keeps_every_content_header_the_provider_sent()
+    {
+        // The allowed body is re-materialized from the bytes read, so the provider's content headers travel with it as sent,
+        // not only Content-Type (the 2.2 fidelity caveat, closed by roadmap 3.2).
+        var lastModified = new DateTimeOffset(2026, 9, 17, 12, 0, 0, TimeSpan.Zero);
+        using var harness = new KassadHandlerHarness(Injection(0.05).Answer("harm_severity", Harm(0.2)));
+        harness.Provider.Respond(() =>
+        {
+            var content = Bodies.Of(Utf8(Completion), Json);
+            content.Headers.ContentLanguage.Add("en");
+            content.Headers.ContentDisposition = new System.Net.Http.Headers.ContentDispositionHeaderValue("inline") { FileName = "completion.json" };
+            content.Headers.LastModified = lastModified;
+            content.Headers.Expires = lastModified.AddDays(1);
+            return new HttpResponseMessage(HttpStatusCode.OK) { Content = content };
+        });
+        using var client = harness.CreateClient();
+
+        using var response = await client.PostAsync(Completions, Body(Prompt));
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("allow", Outcome(response));
+        Assert.Equal(Json, response.Content.Headers.ContentType?.ToString()); // as sent, no charset added
+        Assert.Equal("en", Assert.Single(response.Content.Headers.ContentLanguage));
+        Assert.Equal("inline", response.Content.Headers.ContentDisposition?.DispositionType);
+        Assert.Equal("completion.json", response.Content.Headers.ContentDisposition?.FileName);
+        Assert.Equal(lastModified, response.Content.Headers.LastModified);
+        Assert.Equal(lastModified.AddDays(1), response.Content.Headers.Expires);
+        Assert.Equal(Utf8(Completion).Length, response.Content.Headers.ContentLength);
+        Assert.Equal(Completion, await response.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
+    public async Task Request_streamed_without_a_declared_length_reaches_the_provider_intact_with_its_content_headers()
+    {
+        // A StreamContent shares one stream between what the handler reads and what the transport sends, so the evaluated body
+        // has to be re-attached from the bytes read, under the same headers, or the provider would see it from where the read stopped.
+        using var stream = new UnseekableStream(Utf8(Prompt));
+        using var harness = new KassadHandlerHarness(Injection(0.05).Answer("harm_severity", Harm(0.2)));
         harness.Provider.Respond(HttpStatusCode.OK, Utf8(Completion), Json);
         using var client = harness.CreateClient();
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => client.PostAsync(Completions, Body(ShortPrompt)));
+        using var content = Body(stream, "application/json; charset=utf-8");
+        content.Headers.ContentLanguage.Add("en-GB");
+        using var response = await client.PostAsync(Completions, content);
 
-        Assert.Contains("response body exceeded MaxBodyBytes", ex.Message, StringComparison.Ordinal);
-        Assert.Single(harness.Provider.Requests);
-        Assert.Single(harness.Model.Requests); // inbound only
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("allow", Outcome(response));
+        Assert.Equal(Utf8(Prompt), Assert.Single(harness.Provider.RequestBodies));
+        Assert.Collection(
+            harness.Model.Requests,
+            inbound => Assert.Equal(Prompt, inbound.State),
+            outbound => Assert.Equal(new KassadDelegatingHandler.OutboundState(Prompt, Completion), outbound.State));
+
+        var forwarded = Assert.Single(harness.Provider.Requests).Content!;
+        Assert.NotSame(content, forwarded);
+        Assert.Equal("application/json; charset=utf-8", forwarded.Headers.ContentType?.ToString());
+        Assert.Equal("en-GB", Assert.Single(forwarded.Headers.ContentLanguage));
+        Assert.Equal(Utf8(Prompt).Length, forwarded.Headers.ContentLength); // known once the body has been read to its end
     }
 
     [Fact]
@@ -548,6 +737,26 @@ public class KassadDelegatingHandlerTests
         new(score, ["none", "minor", "serious", "severe"], [0.25, 0.25, 0.25, 0.25], Confidence: 0.9);
 
     private static byte[] Utf8(string text) => Encoding.UTF8.GetBytes(text);
+
+    /// <summary>2 MiB, twice the default limit, each byte a hash of its position so that a byte out of place shows.</summary>
+    private static byte[] LargeBody()
+    {
+        var bytes = new byte[2 * DefaultMaxBodyBytes];
+        for (int i = 0; i < bytes.Length; i++)
+        {
+            bytes[i] = (byte)((uint)i * 2654435761u >> 24);
+        }
+
+        return bytes;
+    }
+
+    /// <summary>Byte-for-byte equality with the first differing offset in the failure message; cheaper than <c>Assert.Equal</c> over two million items.</summary>
+    private static void AssertSameBytes(byte[] expected, byte[] actual)
+    {
+        Assert.Equal(expected.Length, actual.Length);
+        int same = expected.AsSpan().CommonPrefixLength(actual);
+        Assert.True(same == expected.Length, $"bytes differ at offset {same}");
+    }
 
     private static HttpContent Body(string text, string contentType = "application/json; charset=utf-8") => Bodies.Of(Utf8(text), contentType);
 

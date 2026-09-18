@@ -252,7 +252,7 @@ public class StateExtractorTests
         Assert.Equal("""{"user_message":"hi","system_prompt":"Be terse.","completion":"Hello."}""", JsonSerializer.Serialize(extracted, Web));
         Assert.Equal("""{"completion":"Hello."}""", JsonSerializer.Serialize(bodiless, Web));
 
-        // A whole body travels as a string value (the default encoder writes its quotes as ", so compare parsed).
+        // A whole body travels as a string value; the default encoder writes its quotes as unicode escapes, so compare parsed.
         var rawWire = Parse(raw);
         Assert.Equal(new[] { "request", "response" }, rawWire.Select(p => p.Name));
         Assert.Equal("""{"q":"hi"}""", rawWire.Single(p => p.Name == "request").Value.GetString());

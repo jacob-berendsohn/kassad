@@ -120,8 +120,17 @@ curl -s -i localhost:5000/chat -H 'content-type: application/json' -d '{"message
 ```
 
 The first returns `200` with the echo reply and both verdicts in the body; the second returns `403` with a
-`Kassad-Outcome: block` header. [`samples/README.md`](https://github.com/jacob-berendsohn/kassad/blob/main/samples/README.md)
-shows the expected bodies and log lines.
+`Kassad-Outcome: block` header. By default the endpoint answers itself, so only the inbound middleware has work to
+do. Give it an OpenAI key and switch the provider to see the outbound stage screen a real completion:
+
+```bash
+TYPESAFE_API_KEY=... OPENAI_API_KEY=... dotnet run --project samples/Kassad.Sample.ChatApi -- --Llm:Provider=openai
+```
+
+The same benign prompt now comes back with the model's reply, and the body's `kassad.outbound.outcome` carries the
+verdict the Kassad handler attached to the provider's response on its way back; the log shows a
+`Kassad Outbound outcome` line beside the inbound ones. [`samples/README.md`](https://github.com/jacob-berendsohn/kassad/blob/main/samples/README.md)
+shows the expected bodies and log lines for both modes.
 
 ## Rules the engine enforces
 

@@ -32,4 +32,5 @@ This directory holds every project-specific reference document, planning artifac
 - `project-prompts.md` — one prompt per roadmap sub-phase, generated from `roadmap.md`; regenerate rather than edit.
 - `specs/policy-file-format.md` — the policy JSON format and its validation rules.
 - `specs/rejection-response.md` — HTTP shape of rejections from the middleware and the handler.
+- `specs/telemetry.md` — the `Kassad` activity source and meter: activity and instrument names, tags, units, status semantics, what is not emitted (roadmap 3.3).
 - `research/typesafe-api-notes.md` — System One API facts with source URLs, plus what the wire actually returned when the test fixtures were recorded (roadmap 0.3).

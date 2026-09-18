@@ -1,4 +1,9 @@
 #nullable enable
+const Kassad.KassadTelemetry.ActivitySourceName = "Kassad" -> string!
+const Kassad.KassadTelemetry.EvaluationActivityName = "Kassad.Evaluate" -> string!
+const Kassad.KassadTelemetry.MeterName = "Kassad" -> string!
+const Kassad.KassadTelemetry.ModelLatencyInstrumentName = "kassad.model.latency" -> string!
+const Kassad.KassadTelemetry.VerdictsInstrumentName = "kassad.verdicts" -> string!
 Kassad.Engine.EvaluationOptions
 Kassad.Engine.EvaluationOptions.Budget.get -> System.TimeSpan?
 Kassad.Engine.EvaluationOptions.Budget.set -> void
@@ -11,6 +16,7 @@ Kassad.Engine.IGuardrailEngine
 Kassad.Engine.IGuardrailEngine.EvaluateAsync(Kassad.Stage stage, object! state, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Kassad.StageResult!>!
 Kassad.Engine.VerdictResolver
 Kassad.KassadServiceCollectionExtensions
+Kassad.KassadTelemetry
 Kassad.Policies.ActionThresholds
 Kassad.Policies.ActionThresholds.<Clone>$() -> Kassad.Policies.ActionThresholds!
 Kassad.Policies.ActionThresholds.ActionThresholds(double? Flag = null, double? Review = null, double? Block = null) -> void

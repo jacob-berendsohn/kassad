@@ -10,7 +10,8 @@ namespace Kassad.Engine;
 /// Default <see cref="IGuardrailEngine"/>. Batches every policy for a stage into a single
 /// <see cref="DecisionRequest"/> (questions are evaluated independently and in parallel upstream, so
 /// adding policies does not add round trips), then resolves each answer with <see cref="VerdictResolver"/>.
-/// An <see cref="EvaluationOptions.Budget"/>, when set, caps how long the model call may take.
+/// An <see cref="EvaluationOptions.Budget"/>, when set, caps how long the model call may take. Every call is one
+/// <c>Kassad.Evaluate</c> activity and updates the <c>Kassad</c> meter; <see cref="KassadTelemetry"/> has the names.
 /// </summary>
 public sealed class GuardrailEngine : IGuardrailEngine
 {
@@ -46,16 +47,22 @@ public sealed class GuardrailEngine : IGuardrailEngine
     {
         ArgumentNullException.ThrowIfNull(state);
 
+        // One activity per call, however it ends. Null, and nothing allocated, when no listener is attached.
+        using var activity = KassadTelemetry.StartEvaluation(stage, _model.Name);
+
         var policies = _policies.ForStage(stage);
         if (policies.IsEmpty)
         {
-            return new StageResult
+            var empty = new StageResult
             {
                 Stage = stage,
                 Verdicts = [],
                 Outcome = VerdictAction.Allow,
                 ModelLatency = TimeSpan.Zero,
             };
+
+            KassadTelemetry.RecordEvaluation(activity, empty, _model.Name, modelCalled: false);
+            return empty;
         }
 
         var questions = policies.ToDictionary(p => p.Id, p => p.Question, StringComparer.Ordinal);
@@ -77,6 +84,7 @@ public sealed class GuardrailEngine : IGuardrailEngine
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
+            KassadTelemetry.RecordCancellation(activity);
             throw;
         }
         catch (Exception) when (budgetCts is { IsCancellationRequested: true } && !cancellationToken.IsCancellationRequested)
@@ -109,6 +117,8 @@ public sealed class GuardrailEngine : IGuardrailEngine
             BudgetExceeded = budgetExceeded,
         };
 
+        // Before the activity stops, so metric exemplars can point at it.
+        KassadTelemetry.RecordEvaluation(activity, result, _model.Name, modelCalled: true);
         Log(result, failure);
         return result;
     }

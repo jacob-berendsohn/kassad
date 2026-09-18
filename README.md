@@ -158,6 +158,24 @@ var grounding = await engine.EvaluateGroundingAsync(new GroundingState(sentence,
 is sent as a string, so an LLM's malformed arguments are still checked. `source_id` is left out when null.
 The sample policy file carries illustrative `tool_call` and `grounding` policies with untuned thresholds.
 
+## Observability
+
+The engine reports every evaluation through `System.Diagnostics`, so an OpenTelemetry pipeline (or
+`dotnet-counters`) picks it up without Kassad taking an OpenTelemetry dependency:
+
+```csharp
+builder.Services.AddOpenTelemetry()
+    .WithTracing(t => t.AddSource(KassadTelemetry.ActivitySourceName))   // "Kassad"
+    .WithMetrics(m => m.AddMeter(KassadTelemetry.MeterName));             // "Kassad"
+```
+
+One `Kassad.Evaluate` activity per stage evaluation, tagged `kassad.stage`, `kassad.model`, `kassad.outcome`
+and `kassad.had_error`; a `kassad.verdicts` counter with one increment per policy verdict (stage, policy id,
+action, whether it came from `on_error`); and a `kassad.model.latency` histogram of the decision-model call in
+milliseconds. Block rates and p95 latency come from the metrics; the reason behind a verdict stays in the log.
+[`Docs/specs/telemetry.md`](https://github.com/jacob-berendsohn/kassad/blob/main/Docs/specs/telemetry.md) lists
+every tag and value.
+
 ## Numbers
 
 *Not yet measured.* Phase 4 of the roadmap builds an eval harness over JailbreakBench, deepset's

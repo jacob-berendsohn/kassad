@@ -211,8 +211,10 @@ sample policy file as a starting point, not a recommendation.
 - Policies judge content, not envelopes. A recognised chat body reaches the model as `user_message`,
   `system_prompt` and `completion`, never together with its raw JSON, so a base64 image in a prompt costs
   nothing; a body the extractor does not recognise is evaluated whole rather than skipped.
-- Streaming (`text/event-stream`) responses pass through the handler unevaluated with a warning.
-  Token-level evaluation is roadmap 3.4.
+- Streaming (`text/event-stream`) responses pass through the handler unevaluated with a warning. How a
+  later version evaluates them, checkpoint by checkpoint over the text so far with a cut in the provider's
+  own stop vocabulary, is decided in
+  [`Docs/specs/streaming-evaluation.md`](https://github.com/jacob-berendsohn/kassad/blob/main/Docs/specs/streaming-evaluation.md).
 
 ## Not a substitute for
 

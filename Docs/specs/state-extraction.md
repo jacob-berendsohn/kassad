@@ -213,8 +213,9 @@ order they are likely to matter:
 - Gemini `generateContent` (`contents[].parts[].text`, `systemInstruction`).
 - Provider envelopes on Bedrock and Vertex, where the shapes above are wrapped or renamed.
 
-Streaming responses (`text/event-stream`) never reach the extractor; the handler passes them through unevaluated
-(roadmap 3.4 is the design note for token-level evaluation).
+Streaming responses (`text/event-stream`) never reach the extractor; the handler passes them through unevaluated.
+`streaming-evaluation.md` (roadmap 3.4) decides how a later version evaluates them, and has the response
+reconstructed from the frames reach this extractor at the end of the stream.
 
 ## Verified
 

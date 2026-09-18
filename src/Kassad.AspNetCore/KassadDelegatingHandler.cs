@@ -24,7 +24,8 @@ namespace Kassad.AspNetCore;
 /// </para>
 /// <para>
 /// Streaming responses (<c>text/event-stream</c>) are passed through unevaluated with a warning; buffering
-/// them would defeat streaming. Token-level streaming evaluation is roadmap 3.4.
+/// them would defeat streaming. How a later version evaluates them is decided in
+/// <c>Docs/specs/streaming-evaluation.md</c> (roadmap 3.4).
 /// </para>
 /// <para>
 /// A body is read up to <see cref="KassadOptions.MaxBodyBytes"/> plus one byte, which is enough to know whether it fits.

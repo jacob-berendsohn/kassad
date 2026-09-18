@@ -2,12 +2,20 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
+    <!-- The roadmap's command is `kassad-eval run ...`, so the executable carries that name; the code stays in Kassad.Eval. -->
+    <AssemblyName>kassad-eval</AssemblyName>
+    <RootNamespace>Kassad.Eval</RootNamespace>
     <Description>Evaluation harness. Runs policies against labeled public datasets and reports precision/recall per threshold, latency percentiles, and cost per 1k checks. Output feeds the README table.</Description>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="../../src/Kassad/Kassad.csproj" />
     <ProjectReference Include="../../src/Kassad.TypeSafe/Kassad.TypeSafe.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Command-line parsing (roadmap 4.1); the only package the harness adds. -->
+    <PackageReference Include="System.CommandLine" />
   </ItemGroup>
 
 </Project>

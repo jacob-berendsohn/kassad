@@ -7,14 +7,15 @@ namespace Kassad.Tests;
 
 /// <summary>
 /// Collection for the one test with a wall-clock bound. xunit runs a collection that opts out of parallelization on
-/// its own after every parallel collection has finished, so no other test in this process competes with the measured
-/// call; the trx files of six CI runs confirm it (none has another test of this process ending after this one
-/// started). That is the only isolation a test can buy. <c>dotnet test</c> runs the solution's other test projects
-/// and the other target framework concurrently on the same runner, and on a 4-vCPU CI machine another run's coverage
-/// instrumentation, test-host start-up or coverage report has stalled this process for up to 945 ms: roadmap 1.2
-/// measured 141 ms and 545 ms while this test was still in the parallel phase, and on 2026-09-18 it measured 945 ms
-/// here, alone in this collection and after a warm-up, against a 50 ms budget and a fake that would have answered at
-/// 500 ms. The bound below is therefore a magnitude check, not a latency measurement.
+/// its own after every parallel collection has finished (XunitTestAssemblyRunner awaits the parallel collections
+/// before it starts the non-parallel ones), so no other test in this process competes with the measured call. That is
+/// the only isolation a test can buy. <c>dotnet test</c> runs the solution's other test projects and the other target
+/// framework concurrently on the same runner, and on a 4-vCPU CI machine another run's coverage instrumentation,
+/// test-host start-up or coverage report has stalled this process for up to 945 ms: roadmap 1.2 measured 141 ms and
+/// 545 ms while this test was still in the parallel phase, and on 2026-09-18 it measured 945 ms here, alone in this
+/// collection and after a warm-up, against a 50 ms budget and a fake that would have answered at 500 ms, with the trx
+/// file of that run stamping no other result during the call. The bound below is therefore a magnitude check, not a
+/// latency measurement.
 /// </summary>
 [CollectionDefinition(Name, DisableParallelization = true)]
 public static class BudgetTimingCollection

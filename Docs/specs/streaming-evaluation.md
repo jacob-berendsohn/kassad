@@ -335,14 +335,14 @@ one can be provoked and otherwise modelled on the references, and the two .NET S
 ### Signalling the verdict
 
 `Kassad-Outcome` cannot carry a verdict that does not exist when the headers are returned, so a `Windowed` response
-carries no outcome header (or a documented `pending`, if roadmap 2.4's decision on the response-fidelity caveat wants
-a marker); `Buffer` sets it as the non-streaming path does. The verdict itself reaches the application through:
+carries no outcome header (or a documented `pending`, a `rejection-response.md` change for the implementing sub-phase;
+roadmap 2.4 left the header's meaning as it is through `0.1.0`); `Buffer` sets it as the non-streaming path does. The verdict itself reaches the application through:
 
 - **A callback or observer** registered on `KassadOptions` (or as a service), invoked once per stream with the
   terminal `StageResult`, the per-checkpoint results, whether the stream was cut and after how many characters, the
   request URI and the trace id. This is the only channel an SDK-based application can see, and it would also give
   the non-streaming handler path the `Review` visibility the middleware has through `HttpContext.Items` (fidelity
-  caveat item (a)).
+  caveat item (a), which roadmap 2.4 left as it is through `0.1.0`).
 - **`HttpContext.Items`**, when the handler runs inside an ASP.NET Core request and `IHttpContextAccessor` is
   registered: the outbound analogue of `GetKassadInboundResult()`.
 - **`HttpResponseMessage.TrailingHeaders`** and `HttpRequestMessage.Options`, for callers that hold the messages
@@ -416,8 +416,10 @@ Each with the default assumption this note works under; none is decided here.
 4. **`on_error` at mid-stream checkpoints.** Deferred to the terminal checkpoint (above), with per-checkpoint
    application as an option. This modulates when `on_error` applies, not whether; it adds no default.
 5. **Verdict channel.** A callback or observer, because SDK consumers see nothing else; `HttpContext.Items` as the
-   ASP.NET Core convenience. Whether `Kassad-Outcome` is omitted or reads `pending` on a `Windowed` response waits
-   for roadmap 2.4's decision on fidelity caveat items (a) and (b), which the same observer could close.
+   ASP.NET Core convenience. Roadmap 2.4 left `Kassad-Outcome` as a one-word summary of the stage the component
+   itself evaluated through `0.1.0` (fidelity caveat items (a) and (b)), so whether a `Windowed` response omits the
+   header or carries a documented `pending` is a `rejection-response.md` contract change for the implementing
+   sub-phase, with an issue first per `CONTRIBUTING.md`; the same observer could close item (a) then.
 6. **Tool calls in a stream.** Never judged as fragments; the terminal checkpoint evaluates the reconstructed
    response through the existing extractor, so a tool-call-only stream is evaluated whole as its non-streaming
    counterpart is, and the `tool_call` stage remains the check before execution.

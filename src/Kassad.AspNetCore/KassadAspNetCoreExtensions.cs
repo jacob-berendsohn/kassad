@@ -25,6 +25,7 @@ public static class KassadServiceCollectionAspNetCoreExtensions
         options.Validate(o => o.RejectionStatusCode is >= 400 and <= 599, "RejectionStatusCode must be a 4xx or 5xx status.")
                .Validate(o => o.MaxBodyBytes > 0, "MaxBodyBytes must be positive.")
                .Validate(o => o.RejectAt != VerdictAction.Allow, "RejectAt cannot be Allow; that would reject everything.")
+               .Validate(o => o.StateExtractor is not null, "StateExtractor must not be null; use RawBodyExtractor.Instance to evaluate bodies whole.")
                .ValidateOnStart();
 
         services.TryAddTransient<KassadDelegatingHandler>();

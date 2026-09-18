@@ -1,16 +1,37 @@
 #nullable enable
+Kassad.AspNetCore.AnthropicMessagesExtractor
+Kassad.AspNetCore.AnthropicMessagesExtractor.Extract(string! body, string? contentType, Kassad.Stage stage) -> object?
+Kassad.AspNetCore.DefaultStateExtractor
+Kassad.AspNetCore.DefaultStateExtractor.Extract(string! body, string? contentType, Kassad.Stage stage) -> object?
+Kassad.AspNetCore.InboundState
+Kassad.AspNetCore.InboundState.<Clone>$() -> Kassad.AspNetCore.InboundState!
+Kassad.AspNetCore.InboundState.Deconstruct(out string! UserMessage, out string? SystemPrompt) -> void
+Kassad.AspNetCore.InboundState.Equals(Kassad.AspNetCore.InboundState? other) -> bool
+Kassad.AspNetCore.InboundState.InboundState(string! UserMessage, string? SystemPrompt = null) -> void
+Kassad.AspNetCore.InboundState.SystemPrompt.get -> string?
+Kassad.AspNetCore.InboundState.SystemPrompt.init -> void
+Kassad.AspNetCore.InboundState.UserMessage.get -> string!
+Kassad.AspNetCore.InboundState.UserMessage.init -> void
+Kassad.AspNetCore.IStateExtractor
+Kassad.AspNetCore.IStateExtractor.Extract(string! body, string? contentType, Kassad.Stage stage) -> object?
 Kassad.AspNetCore.KassadApplicationBuilderExtensions
 Kassad.AspNetCore.KassadDelegatingHandler
 Kassad.AspNetCore.KassadDelegatingHandler.KassadDelegatingHandler(Kassad.Engine.IGuardrailEngine! engine, Microsoft.Extensions.Options.IOptions<Kassad.AspNetCore.KassadOptions!>! options, Microsoft.Extensions.Logging.ILogger<Kassad.AspNetCore.KassadDelegatingHandler!>! logger) -> void
 Kassad.AspNetCore.KassadDelegatingHandler.OutboundState
 Kassad.AspNetCore.KassadDelegatingHandler.OutboundState.<Clone>$() -> Kassad.AspNetCore.KassadDelegatingHandler.OutboundState!
-Kassad.AspNetCore.KassadDelegatingHandler.OutboundState.Deconstruct(out string? Request, out string! Response) -> void
+Kassad.AspNetCore.KassadDelegatingHandler.OutboundState.Completion.get -> string?
+Kassad.AspNetCore.KassadDelegatingHandler.OutboundState.Completion.init -> void
+Kassad.AspNetCore.KassadDelegatingHandler.OutboundState.Deconstruct(out string? Request, out string? Response) -> void
 Kassad.AspNetCore.KassadDelegatingHandler.OutboundState.Equals(Kassad.AspNetCore.KassadDelegatingHandler.OutboundState? other) -> bool
-Kassad.AspNetCore.KassadDelegatingHandler.OutboundState.OutboundState(string? Request, string! Response) -> void
+Kassad.AspNetCore.KassadDelegatingHandler.OutboundState.OutboundState(string? Request, string? Response) -> void
 Kassad.AspNetCore.KassadDelegatingHandler.OutboundState.Request.get -> string?
 Kassad.AspNetCore.KassadDelegatingHandler.OutboundState.Request.init -> void
-Kassad.AspNetCore.KassadDelegatingHandler.OutboundState.Response.get -> string!
+Kassad.AspNetCore.KassadDelegatingHandler.OutboundState.Response.get -> string?
 Kassad.AspNetCore.KassadDelegatingHandler.OutboundState.Response.init -> void
+Kassad.AspNetCore.KassadDelegatingHandler.OutboundState.SystemPrompt.get -> string?
+Kassad.AspNetCore.KassadDelegatingHandler.OutboundState.SystemPrompt.init -> void
+Kassad.AspNetCore.KassadDelegatingHandler.OutboundState.UserMessage.get -> string?
+Kassad.AspNetCore.KassadDelegatingHandler.OutboundState.UserMessage.init -> void
 Kassad.AspNetCore.KassadHttpClientBuilderExtensions
 Kassad.AspNetCore.KassadHttpContextExtensions
 Kassad.AspNetCore.KassadInboundMiddleware
@@ -30,13 +51,28 @@ Kassad.AspNetCore.KassadOptions.RejectAt.get -> Kassad.VerdictAction
 Kassad.AspNetCore.KassadOptions.RejectAt.set -> void
 Kassad.AspNetCore.KassadOptions.RejectionStatusCode.get -> int
 Kassad.AspNetCore.KassadOptions.RejectionStatusCode.set -> void
+Kassad.AspNetCore.KassadOptions.StateExtractor.get -> Kassad.AspNetCore.IStateExtractor!
+Kassad.AspNetCore.KassadOptions.StateExtractor.set -> void
 Kassad.AspNetCore.KassadServiceCollectionAspNetCoreExtensions
+Kassad.AspNetCore.OpenAIChatCompletionsExtractor
+Kassad.AspNetCore.OpenAIChatCompletionsExtractor.Extract(string! body, string? contentType, Kassad.Stage stage) -> object?
+Kassad.AspNetCore.RawBodyExtractor
+Kassad.AspNetCore.RawBodyExtractor.Extract(string! body, string? contentType, Kassad.Stage stage) -> object?
+override Kassad.AspNetCore.InboundState.Equals(object? obj) -> bool
+override Kassad.AspNetCore.InboundState.GetHashCode() -> int
+override Kassad.AspNetCore.InboundState.ToString() -> string!
 override Kassad.AspNetCore.KassadDelegatingHandler.OutboundState.Equals(object? obj) -> bool
 override Kassad.AspNetCore.KassadDelegatingHandler.OutboundState.GetHashCode() -> int
 override Kassad.AspNetCore.KassadDelegatingHandler.OutboundState.ToString() -> string!
+static Kassad.AspNetCore.AnthropicMessagesExtractor.Instance.get -> Kassad.AspNetCore.AnthropicMessagesExtractor!
+static Kassad.AspNetCore.DefaultStateExtractor.Instance.get -> Kassad.AspNetCore.DefaultStateExtractor!
+static Kassad.AspNetCore.InboundState.operator !=(Kassad.AspNetCore.InboundState? left, Kassad.AspNetCore.InboundState? right) -> bool
+static Kassad.AspNetCore.InboundState.operator ==(Kassad.AspNetCore.InboundState? left, Kassad.AspNetCore.InboundState? right) -> bool
 static Kassad.AspNetCore.KassadApplicationBuilderExtensions.UseKassadInbound(this Microsoft.AspNetCore.Builder.IApplicationBuilder! app) -> Microsoft.AspNetCore.Builder.IApplicationBuilder!
 static Kassad.AspNetCore.KassadDelegatingHandler.OutboundState.operator !=(Kassad.AspNetCore.KassadDelegatingHandler.OutboundState? left, Kassad.AspNetCore.KassadDelegatingHandler.OutboundState? right) -> bool
 static Kassad.AspNetCore.KassadDelegatingHandler.OutboundState.operator ==(Kassad.AspNetCore.KassadDelegatingHandler.OutboundState? left, Kassad.AspNetCore.KassadDelegatingHandler.OutboundState? right) -> bool
 static Kassad.AspNetCore.KassadHttpClientBuilderExtensions.AddKassadHandler(this Microsoft.Extensions.DependencyInjection.IHttpClientBuilder! builder) -> Microsoft.Extensions.DependencyInjection.IHttpClientBuilder!
 static Kassad.AspNetCore.KassadHttpContextExtensions.GetKassadInboundResult(this Microsoft.AspNetCore.Http.HttpContext! context) -> Kassad.StageResult?
 static Kassad.AspNetCore.KassadServiceCollectionAspNetCoreExtensions.AddKassadAspNetCore(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Kassad.AspNetCore.KassadOptions!>? configure = null) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+static Kassad.AspNetCore.OpenAIChatCompletionsExtractor.Instance.get -> Kassad.AspNetCore.OpenAIChatCompletionsExtractor!
+static Kassad.AspNetCore.RawBodyExtractor.Instance.get -> Kassad.AspNetCore.RawBodyExtractor!

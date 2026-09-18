@@ -91,7 +91,7 @@ public class KassadInboundMiddlewareTests
     }
 
     [Fact]
-    public async Task Allow_passes_the_body_through_intact_and_evaluates_the_raw_body()
+    public async Task Allow_passes_the_body_through_intact_and_evaluates_an_unrecognised_body_whole()
     {
         using var factory = new KassadWebApplicationFactory(Injection(0.05));
         using var client = factory.CreateClient();
@@ -104,9 +104,94 @@ public class KassadInboundMiddlewareTests
         Assert.Equal(Message, await response.Content.ReadAsStringAsync());
         Assert.Equal(VerdictAction.Allow, factory.Probe.InboundResult?.Outcome);
 
-        // v0 evaluates the raw body as the state; roadmap 2.3 replaces this with structured extraction.
+        // {"message": ...} is no shape the default extractor knows, so the whole body is the state (Docs/specs/state-extraction.md).
         var request = Assert.Single(factory.Model.Requests);
         Assert.Equal(Message, request.State);
+    }
+
+    [Theory]
+    [InlineData(ProviderBodies.OpenAIRequest)]
+    [InlineData(ProviderBodies.AnthropicRequest)]
+    public async Task Chat_body_is_evaluated_as_its_last_user_turn_and_system_prompt(string body)
+    {
+        using var factory = new KassadWebApplicationFactory(Injection(0.05));
+        using var client = factory.CreateClient();
+
+        using var response = await client.PostAsync(Chat, Content(body));
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("allow", Outcome(response));
+        Assert.Equal(body, factory.Probe.Body); // the endpoint still receives the whole body
+
+        // The envelope never reaches the model: two earlier turns, an assistant turn and an image part are gone.
+        Assert.Equal(new InboundState(ProviderBodies.UserMessage, ProviderBodies.SystemPrompt), Assert.Single(factory.Model.Requests).State);
+    }
+
+    [Fact]
+    public async Task Injection_in_the_last_user_turn_of_a_chat_body_is_what_the_policies_judge()
+    {
+        using var factory = new KassadWebApplicationFactory(Injection(0.95));
+        using var client = factory.CreateClient();
+
+        using var response = await client.PostAsync(Chat, Content(ProviderBodies.OpenAIInjectionRequest));
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        Assert.Equal(new InboundState(ProviderBodies.Injection, ProviderBodies.SystemPrompt), Assert.Single(factory.Model.Requests).State);
+    }
+
+    [Fact]
+    public async Task Text_plain_body_is_evaluated_whole_even_when_it_is_a_chat_body()
+    {
+        using var factory = new KassadWebApplicationFactory(Injection(0.05));
+        using var client = factory.CreateClient();
+
+        using var response = await client.PostAsync(Chat, Content(ProviderBodies.OpenAIRequest, "text/plain; charset=utf-8"));
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(ProviderBodies.OpenAIRequest, Assert.Single(factory.Model.Requests).State);
+    }
+
+    [Fact]
+    public async Task Custom_extractor_from_options_decides_the_state()
+    {
+        var extractor = RecordingExtractor.Returning(true);
+        using var factory = new KassadWebApplicationFactory(Injection(0.05), o => o.StateExtractor = extractor);
+        using var client = factory.CreateClient();
+
+        using var response = await client.PostAsync(Chat, Content(Message));
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var call = Assert.Single(extractor.Calls);
+        Assert.Equal(Message, call.Body);
+        Assert.Equal("application/json; charset=utf-8", call.ContentType);
+        Assert.Equal(Stage.Inbound, call.Stage);
+        Assert.Same(RecordingExtractor.Prompt, Assert.Single(factory.Model.Requests).State);
+    }
+
+    [Fact]
+    public async Task Custom_extractor_returning_null_falls_back_to_the_whole_body()
+    {
+        var extractor = RecordingExtractor.Returning(false);
+        using var factory = new KassadWebApplicationFactory(Injection(0.05), o => o.StateExtractor = extractor);
+        using var client = factory.CreateClient();
+
+        using var response = await client.PostAsync(Chat, Content(ProviderBodies.OpenAIRequest));
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Single(extractor.Calls);
+        Assert.Equal(ProviderBodies.OpenAIRequest, Assert.Single(factory.Model.Requests).State);
+    }
+
+    [Fact]
+    public async Task RawBodyExtractor_evaluates_a_chat_body_whole()
+    {
+        using var factory = new KassadWebApplicationFactory(Injection(0.05), o => o.StateExtractor = RawBodyExtractor.Instance);
+        using var client = factory.CreateClient();
+
+        using var response = await client.PostAsync(Chat, Content(ProviderBodies.OpenAIRequest));
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(ProviderBodies.OpenAIRequest, Assert.Single(factory.Model.Requests).State);
     }
 
     [Theory]
@@ -304,6 +389,7 @@ public class KassadInboundMiddlewareTests
         AssertRejectedAtStartup(o => o.RejectAt = VerdictAction.Allow);
         AssertRejectedAtStartup(o => o.RejectionStatusCode = StatusCodes.Status200OK);
         AssertRejectedAtStartup(o => o.MaxBodyBytes = 0);
+        AssertRejectedAtStartup(o => o.StateExtractor = null!);
 
         static void AssertRejectedAtStartup(Action<KassadOptions> configure)
         {

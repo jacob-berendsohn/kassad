@@ -12,7 +12,8 @@ trained to return calibrated probabilities for typed questions instead of genera
 Every policy for a stage is batched into one request, so ten checks cost one round trip.
 
 > **Status: pre-release scaffold.** The engine, policy format, and TypeSafe client are in place and
-> unit-tested; the middleware is functional for JSON bodies; the eval harness is not yet built.
+> unit-tested; the middleware and handler are functional and evaluate the user's message out of OpenAI- and
+> Anthropic-shaped bodies; the eval harness is not yet built.
 > Do not deploy in front of production traffic until the README has a numbers table. See
 > [`Docs/roadmap.md`](https://github.com/jacob-berendsohn/kassad/blob/main/Docs/roadmap.md).
 
@@ -137,14 +138,26 @@ These are not conventions; the policy loader rejects a file that violates them.
 
 | Stage | State handed to policies | Typical policies |
 |---|---|---|
-| `inbound` | the request body / user message | injection, jailbreak, PII in prompt, prohibited request class |
-| `outbound` | `{ request, response }` | sensitive-data leak, unsafe advice, harm severity, non-answer |
+| `inbound` | `{ user_message, system_prompt }` from an OpenAI or Anthropic chat request; any other body whole | injection, jailbreak, PII in prompt, prohibited request class |
+| `outbound` | `{ user_message, system_prompt, completion }` from a chat request and its response; `{ request, response }` whole for other shapes | sensitive-data leak, unsafe advice, harm severity, non-answer |
 | `tool_call` | `{ user_intent, tool_name, tool_schema, arguments }` from a `ToolCallState` | does the call match intent, is it destructive, are args plausible |
 | `grounding` | `{ claim, source_passage, source_id }` from a `GroundingState` | does the source support the claim |
 
 `inbound` and `outbound` are wired through the middleware and handler. `tool_call` and `grounding` are
 code-only: build the state record and call the typed helper. The record's fields reach the model under the
 names in the table, so policy instructions can refer to them ("Compare `arguments` against `user_intent`").
+
+### What the policies see
+
+The middleware and the handler do not hand the model the JSON envelope. An `IStateExtractor`
+(`KassadOptions.StateExtractor`) reduces each body first: by default an OpenAI chat-completions or Anthropic
+messages request becomes `user_message` (the text of the last `user` turn) and `system_prompt`, a response
+becomes `completion`, and a body of any other shape is evaluated whole. `text/plain` is never parsed. Set
+`RawBodyExtractor.Instance` to evaluate every body whole, or implement the interface for your own request
+shape and return an `InboundState` so the same policies apply; the sample does that for its `{"message": ...}`
+endpoint. Earlier turns, tool calls and tool results are not extracted, which
+[`Docs/specs/state-extraction.md`](https://github.com/jacob-berendsohn/kassad/blob/main/Docs/specs/state-extraction.md)
+spells out along with the selection rules.
 
 ```csharp
 var toolCall = await engine.EvaluateToolCallAsync(
@@ -195,6 +208,9 @@ sample policy file as a starting point, not a recommendation.
   is cancelled, the policies resolve through `on_error`, and `StageResult.BudgetExceeded` is set.
 - Rejection responses do not name the policy that fired unless you opt in. Telling an attacker which
   check caught them is free reconnaissance.
+- Policies judge content, not envelopes. A recognised chat body reaches the model as `user_message`,
+  `system_prompt` and `completion`, never together with its raw JSON, so a base64 image in a prompt costs
+  nothing; a body the extractor does not recognise is evaluated whole rather than skipped.
 - Streaming (`text/event-stream`) responses pass through the handler unevaluated with a warning.
   Token-level evaluation is roadmap 3.4.
 

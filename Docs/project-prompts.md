@@ -2,12 +2,12 @@
 
 | | |
 |---|---|
-| **Prompts generated** | `2026-09-17 21:46` (thirteenth in-place refresh of the `2026-09-17 12:27` generation; see the refresh note below) |
-| **Roadmap last modified** | `2026-09-17` per the two most recent `Docs/roadmap.md` changelog entries, the 3.2 and 2.3 end states (the changelog records dates only; the lines were committed `2026-09-17 20:33`, `87e48a5`, on the 3.2 branch and `2026-09-17 20:44`, `38d6f1c`, on this branch, combined by the merge of the 3.2 branch into this one) |
+| **Prompts generated** | `2026-09-18 17:01` (fourteenth in-place refresh of the `2026-09-17 12:27` generation; see the refresh note below) |
+| **Roadmap last modified** | `2026-09-18` per the most recent `Docs/roadmap.md` changelog entry, the 2.4 end state (the changelog records dates only; the line was committed `2026-09-18 17:01`, `33e81dd`, on this branch) |
 
 > **Staleness check.** If the roadmap's last-modified timestamp is newer than the prompts-generated timestamp, **this file is stale**. Regenerate it before executing any prompt; the prompts below may not reflect the current roadmap. Do not edit prompts here in place — fix the roadmap and regenerate.
 
-> **Refreshed in place 2026-09-17 21:46** (earlier refreshes 2026-09-17 14:47, 15:34, 16:43, 17:17, 17:28 and 17:49, then 18:23 on the 3.1 branch and 18:26 on the 2.1 branch, which ran in parallel, 19:13 when those two were merged, then 19:42 on the 2.2 branch and 19:47 on the 3.3 branch, which ran in parallel, 19:56 when those two were merged, 20:00 on the 3.3 branch after its CI fix, then 20:35 on the 3.2 branch and 20:44 on the 2.3 branch, which ran in parallel). Between generation (`6892f84`) and this merge of the 3.2 branch (`9268f2c`, which carries `main` after PR #23) into the 2.3 branch, the roadmap changed only in two Prerequisites bullets (owner placeholder, then the nuget.org policy, each recorded as done) and its changelog (0.1–0.5, 1.1–1.3, 3.1, 2.1, 2.2, 3.3, 3.2 and 2.3 end states); the steps since `083e9ad` (`main` after PR #21) are the single 3.2 changelog line (`87e48a5`) and the single 2.3 changelog line (`38d6f1c`), written on parallel branches and combined by the merge. No sub-phase Goal, Deliverables, Verification or Depends-on line changed, and a script re-checked every prompt below verbatim against the roadmap (21 sub-phases, 0 differences). Header timestamps and the done markers on Prompts 0.1–0.5, 1.1–1.3, 2.1–2.3 and 3.1–3.3 are the only edits since generation. The next roadmap change that touches a sub-phase field needs a full regeneration, not another refresh.
+> **Refreshed in place 2026-09-18 17:01** (earlier refreshes 2026-09-17 14:47, 15:34, 16:43, 17:17, 17:28 and 17:49, then 18:23 on the 3.1 branch and 18:26 on the 2.1 branch, which ran in parallel, 19:13 when those two were merged, then 19:42 on the 2.2 branch and 19:47 on the 3.3 branch, which ran in parallel, 19:56 when those two were merged, 20:00 on the 3.3 branch after its CI fix, then 20:35 on the 3.2 branch and 20:44 on the 2.3 branch, which ran in parallel, and 21:46 when those two were merged). Between generation (`6892f84`) and the 2.4 docs commit (`33e81dd`) on this branch, the roadmap changed only in two Prerequisites bullets (owner placeholder, then the nuget.org policy, each recorded as done) and its changelog (0.1–0.5, 1.1–1.3, 3.1, 2.1, 2.2, 3.3, 3.2, 2.3 and 2.4 end states); the step since `471de7a` (`main` after PR #25) is the single 2.4 changelog line (`33e81dd`). No sub-phase Goal, Deliverables, Verification or Depends-on line changed, and a script re-checked every prompt below verbatim against the roadmap (21 sub-phases, 0 differences). Header timestamps and the done markers on Prompts 0.1–0.5, 1.1–1.3, 2.1–2.4 and 3.1–3.3 are the only edits since generation. The next roadmap change that touches a sub-phase field needs a full regeneration, not another refresh.
 
 ## How to use
 
@@ -361,6 +361,8 @@ Phases 0 → 1 → 2 are strictly sequential. Phase 3 and Phase 4 depend on Phas
 **Depends on:** 2.2.
 
 #### Prompt 2.4 — Sample wired to a real provider
+
+*Done 2026-09-18; end state recorded in the roadmap changelog. Do not re-run.*
 
 **Session setup.** Effort: `high` — first real external integration (OpenAI chat completions) through the wrapped client; live behavior has to be discovered, not assumed.
 

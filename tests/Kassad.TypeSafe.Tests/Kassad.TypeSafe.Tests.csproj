@@ -3,6 +3,12 @@
     <ProjectReference Include="../../src/Kassad.TypeSafe/Kassad.TypeSafe.csproj" />
     <!-- The engine-level live tests (GuardrailEngineLiveTests, roadmap 3.1) run policies through GuardrailEngine against the real client. -->
     <ProjectReference Include="../../src/Kassad/Kassad.csproj" />
+    <!-- The state-extraction tests (roadmap 2.3) pin how SystemOneWire writes the ASP.NET Core states and run the sample's policies over extracted states live. -->
+    <ProjectReference Include="../../src/Kassad.AspNetCore/Kassad.AspNetCore.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- The provider-shaped bodies the extractor tests use, linked from the project that owns them (no test-to-test project reference; see Kassad.AspNetCore.Tests.csproj). -->
+    <Compile Include="../Kassad.AspNetCore.Tests/ProviderBodies.cs" Link="Shared/ProviderBodies.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Fixtures/**/*.json" CopyToOutputDirectory="PreserveNewest" />

@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Kassad.Engine;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -16,12 +17,18 @@ namespace Kassad.AspNetCore;
 /// </summary>
 /// <remarks>
 /// <para>
+/// Both bodies go through <see cref="KassadOptions.StateExtractor"/> first: by default an OpenAI chat-completions or
+/// Anthropic messages request is reduced to the user's latest message and the system prompt (<see cref="InboundState"/>),
+/// the response to the assistant's reply, and the outbound policies see them together as an <see cref="OutboundState"/>;
+/// a body of any other shape is evaluated whole.
+/// </para>
+/// <para>
 /// Streaming responses (<c>text/event-stream</c>) are passed through unevaluated with a warning; buffering
 /// them would defeat streaming. Token-level streaming evaluation is roadmap 3.4.
 /// </para>
 /// <para>
 /// A body is read up to <see cref="KassadOptions.MaxBodyBytes"/> plus one byte, which is enough to know whether it fits.
-/// One that does is evaluated and forwarded from the bytes read. One that does not is rejected with 413 under
+/// One that does is extracted, evaluated and forwarded from the bytes read. One that does not is rejected with 413 under
 /// <see cref="ErrorPolicy.FailClosed"/>; under <see cref="ErrorPolicy.FailOpen"/> it is passed through unevaluated
 /// with a warning, the bytes already read ahead of whatever remains unread, so nothing is buffered beyond the limit.
 /// </para>
@@ -48,6 +55,7 @@ public sealed class KassadDelegatingHandler : DelegatingHandler
         ArgumentNullException.ThrowIfNull(request);
 
         string? requestBody = null;
+        object? requestState = null;
         if (request.Content is { } requestContent && IsText(requestContent.Headers.ContentType))
         {
             var body = await ReadBoundedAsync(requestContent, cancellationToken).ConfigureAwait(false);
@@ -65,7 +73,9 @@ public sealed class KassadDelegatingHandler : DelegatingHandler
                 requestBody = body.Text;
                 request.Content = body.Reattach();
 
-                var inbound = await _engine.EvaluateAsync(Stage.Inbound, requestBody, cancellationToken).ConfigureAwait(false);
+                // Null from the extractor means "no shape I recognise": the whole body is the state, as it was before extraction existed.
+                requestState = _options.StateExtractor.Extract(requestBody, requestContent.Headers.ContentType?.ToString(), Stage.Inbound) ?? requestBody;
+                var inbound = await _engine.EvaluateAsync(Stage.Inbound, requestState, cancellationToken).ConfigureAwait(false);
                 if (inbound.Outcome >= _options.RejectAt)
                 {
                     return Rejection(request, Stage.Inbound, inbound);
@@ -100,7 +110,8 @@ public sealed class KassadDelegatingHandler : DelegatingHandler
         }
 
         var responseBody = responseContent.Text;
-        var state = new OutboundState(requestBody, responseBody);
+        var responseState = _options.StateExtractor.Extract(responseBody, response.Content.Headers.ContentType?.ToString(), Stage.Outbound);
+        var state = OutboundState.From(requestBody, requestState, responseBody, responseState);
         var outbound = await _engine.EvaluateAsync(Stage.Outbound, state, cancellationToken).ConfigureAwait(false);
         if (outbound.Outcome >= _options.RejectAt)
         {
@@ -119,13 +130,67 @@ public sealed class KassadDelegatingHandler : DelegatingHandler
         return response;
     }
 
-    /// <summary>State handed to outbound policies: the prompt that produced the completion, and the completion.</summary>
-    /// <param name="Request">
-    /// Raw request body sent to the provider, or <c>null</c> if it was not text or was passed through unevaluated because it
-    /// exceeded <see cref="KassadOptions.MaxBodyBytes"/>.
-    /// </param>
-    /// <param name="Response">Raw response body from the provider.</param>
-    public sealed record OutboundState(string? Request, string Response);
+    /// <summary>
+    /// State handed to outbound policies: the prompt that produced the completion, and the completion, each in the
+    /// most useful form <see cref="KassadOptions.StateExtractor"/> could give it. Each body appears once: as
+    /// <see cref="UserMessage"/> and <see cref="SystemPrompt"/> when the extractor recognised the request, as
+    /// <see cref="Completion"/> when it recognised the response, and otherwise whole in <see cref="Request"/> or
+    /// <see cref="Response"/>.
+    /// </summary>
+    /// <remarks>
+    /// A decision model that serializes states with <c>System.Text.Json</c>, as <c>Kassad.TypeSafe</c> does, presents
+    /// this state as an object with the fields <c>user_message</c>, <c>system_prompt</c>, <c>completion</c>,
+    /// <c>request</c> and <c>response</c>, each present only when it has a value, so an outbound policy can refer to
+    /// the same names an inbound policy uses. <c>Docs/specs/state-extraction.md</c> is the spec.
+    /// </remarks>
+    /// <param name="Request">The request as the inbound stage saw it, when that was text and not an <see cref="InboundState"/>: the body sent to the provider, or the text a custom extractor returned for it. <c>null</c> when the request had no text body, when it was passed through unevaluated because it exceeded <see cref="KassadOptions.MaxBodyBytes"/> under <see cref="ErrorPolicy.FailOpen"/>, or when <see cref="UserMessage"/> carries its content.</param>
+    /// <param name="Response">The response body from the provider, when the extractor did not recognise it. <c>null</c> when <see cref="Completion"/> carries its content.</param>
+    public sealed record OutboundState(string? Request, string? Response)
+    {
+        /// <summary>The request as the inbound stage saw it, when that was text; see the record's remarks.</summary>
+        [JsonPropertyName("request")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? Request { get; init; } = Request;
+
+        /// <summary>The response body, when the extractor did not recognise its shape.</summary>
+        [JsonPropertyName("response")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? Response { get; init; } = Response;
+
+        /// <summary>The user's latest message, when the extractor recognised the request (<see cref="InboundState.UserMessage"/>).</summary>
+        [JsonPropertyName("user_message")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? UserMessage { get; init; }
+
+        /// <summary>The system prompt, when the extractor recognised the request and it had one (<see cref="InboundState.SystemPrompt"/>).</summary>
+        [JsonPropertyName("system_prompt")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? SystemPrompt { get; init; }
+
+        /// <summary>The assistant's reply, when the extractor recognised the response.</summary>
+        [JsonPropertyName("completion")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? Completion { get; init; }
+
+        /// <summary>
+        /// Folds what the extractor returned for each direction into the state: an <see cref="InboundState"/> becomes
+        /// <see cref="UserMessage"/> and <see cref="SystemPrompt"/>, a string from the response side becomes
+        /// <see cref="Completion"/>, and a side that was not recognised keeps its whole body.
+        /// </summary>
+        internal static OutboundState From(string? requestBody, object? requestState, string responseBody, object? responseState)
+        {
+            var prompt = requestState as InboundState;
+            var completion = responseState as string;
+            return new OutboundState(
+                prompt is null ? requestState as string ?? requestBody : null,
+                completion is null ? responseBody : null)
+            {
+                UserMessage = prompt?.UserMessage,
+                SystemPrompt = prompt?.SystemPrompt,
+                Completion = completion,
+            };
+        }
+    }
 
     /// <summary>
     /// Read <paramref name="content"/> up to <see cref="KassadOptions.MaxBodyBytes"/> plus one byte. The extra byte tells an

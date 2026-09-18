@@ -12,9 +12,10 @@ namespace Kassad.AspNetCore;
 /// <see cref="HttpContext.Items"/> and continues.
 /// </summary>
 /// <remarks>
-/// v0 evaluates the raw body as the state. Structured extraction (pulling the user turn out of an
-/// OpenAI-shaped <c>messages</c> array, for example) is roadmap 2.3 via an <c>IStateExtractor</c>.
-/// Bodies without a textual content type are passed through untouched.
+/// The body is reduced to the state the policies judge by <see cref="KassadOptions.StateExtractor"/>: by default an
+/// OpenAI chat-completions or Anthropic messages body becomes an <see cref="InboundState"/> (the user's latest message
+/// and the system prompt) and any other body is evaluated whole. Bodies without a textual content type are passed
+/// through untouched.
 /// </remarks>
 public sealed class KassadInboundMiddleware
 {
@@ -66,7 +67,9 @@ public sealed class KassadInboundMiddleware
 
         context.Request.Body.Position = 0;
 
-        var result = await _engine.EvaluateAsync(Stage.Inbound, body, context.RequestAborted).ConfigureAwait(false);
+        // Null from the extractor means "no shape I recognise": the whole body is the state, as it was before extraction existed.
+        var state = _options.StateExtractor.Extract(body, context.Request.ContentType, Stage.Inbound) ?? body;
+        var result = await _engine.EvaluateAsync(Stage.Inbound, state, context.RequestAborted).ConfigureAwait(false);
         context.Items[KassadHttpContextExtensions.InboundResultKey] = result;
 
         if (_options.OutcomeHeaderName is { } header)

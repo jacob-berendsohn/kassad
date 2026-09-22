@@ -38,7 +38,7 @@ internal static class MarkdownReport
             ? Invariant($"a stratified sample of {sample.Size} of {dataset.RowsTotal} rows (seed {sample.Seed})")
             : Invariant($"the full set of {dataset.RowsTotal} rows");
         var interrupted = doc.Run.Interrupted ? Invariant($" The run was interrupted after {dataset.RowsEvaluated} rows.") : string.Empty;
-        var revision = dataset.Revision is { Length: >= 7 } r ? Invariant($" at revision `{r[..7]}`") : string.Empty;
+        var revision = dataset.Revision is { Length: > 0 } r ? Invariant($" at revision `{(r.Length > 7 ? r[..7] : r)}`") : string.Empty;
         var resolved = doc.Model.Resolved.Count == 0 ? "no release (every call failed)" : string.Join(", ", doc.Model.Resolved.Select(m => $"`{m}`"));
         md.Append(Invariant($"Source: {dataset.Source}{revision}, splits {string.Join(" + ", dataset.Splits)}: {coverage}, label 1 = {dataset.PositiveLabel}.{interrupted} "));
         md.Append(Invariant($"Stage `{dataset.Stage}`, state `{dataset.StateShape}`, policies from `{doc.Policies.File}` (SHA-256 `{Short(doc.Policies.Sha256)}`). "));
@@ -49,7 +49,7 @@ internal static class MarkdownReport
         md.Append(Invariant($"| {report.Rows} | {report.Positives} | {report.Rows - report.Positives} | {report.ErrorRows} | {Ms(report.LatencyP50Ms)} | {Ms(report.LatencyP95Ms)} | {Fixed(report.MeanInputTokens, "0.0")} | {Usd(report.CostPer1kChecksUsd)} |\n\n"));
         md.Append(Invariant($"Cost per 1k checks is the mean input tokens per check times 1,000 at ${Pricing.UsdPerMillionInputTokens.ToString("0.000", CultureInfo.InvariantCulture)} per 1M input tokens; output tokens are not billed. "));
         md.Append(Invariant($"Rate quoted, verify: [{Pricing.SourceName}]({Pricing.SourceUrl}). "));
-        md.Append(Invariant($"A check is one request carrying all {doc.Policies.Evaluated.Count} {doc.Policies.Stage} policies; latency and tokens are per check, over the rows that got an answer.\n\n"));
+        md.Append(Invariant($"A check is one request carrying the file's {doc.Policies.Evaluated.Count} {doc.Policies.Stage} {(doc.Policies.Evaluated.Count == 1 ? "policy" : "policies")}; latency and tokens are per check, over the rows that got an answer.\n\n"));
 
         foreach (var policy in report.Policies)
         {

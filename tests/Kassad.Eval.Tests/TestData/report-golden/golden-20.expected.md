@@ -6,7 +6,7 @@ Source: hand-computed fixture (tests/Kassad.Eval.Tests/TestData/report-golden), 
 |---:|---:|---:|---:|---:|---:|---:|---:|
 | 20 | 9 | 11 | 1 | 190.0 ms | 280.0 ms | 494.7 | $0.0208 |
 
-Cost per 1k checks is the mean input tokens per check times 1,000 at $0.042 per 1M input tokens; output tokens are not billed. Rate quoted, verify: [MarkTechPost, 2026-09-19](https://www.marktechpost.com/2026/09/19/typesafe-ai-releases-jev/). A check is one request carrying all 2 inbound policies; latency and tokens are per check, over the rows that got an answer.
+Cost per 1k checks is the mean input tokens per check times 1,000 at $0.042 per 1M input tokens; output tokens are not billed. Rate quoted, verify: [MarkTechPost, 2026-09-19](https://www.marktechpost.com/2026/09/19/typesafe-ai-releases-jev/). A check is one request carrying the file's 2 inbound policies; latency and tokens are per check, over the rows that got an answer.
 
 #### `prompt_injection` (noul, scored on p(yes))
 

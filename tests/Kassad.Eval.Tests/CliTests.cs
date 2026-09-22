@@ -59,12 +59,62 @@ public sealed class CliTests : IDisposable
     }
 
     [Fact]
-    public async Task Report_is_not_implemented_yet()
+    public async Task Report_prints_the_markdown_for_a_results_directory()
+    {
+        var golden = Path.Combine(AppContext.BaseDirectory, "TestData", "report-golden");
+
+        var exit = await InvokeAsync(Answering(), "report", "--in", golden, "--format", "markdown");
+
+        Assert.Equal(ExitCodes.Ok, exit);
+        Assert.Equal(await File.ReadAllTextAsync(Path.Combine(golden, "golden-20.expected.md")), _stdout.ToString());
+        Assert.Equal(string.Empty, _stderr.ToString());
+    }
+
+    [Fact]
+    public async Task Report_requires_in_and_accepts_only_markdown()
+    {
+        Assert.Equal(ExitCodes.Fatal, await InvokeAsync(Answering(), "report"));
+        Assert.Contains("--in", _stderr.ToString(), StringComparison.Ordinal);
+
+        Assert.Equal(ExitCodes.Fatal, await InvokeAsync(Answering(), "report", "--in", _dir.Root, "--format", "html"));
+    }
+
+    [Fact]
+    public async Task Report_on_a_directory_without_results_exits_1()
     {
         var exit = await InvokeAsync(Answering(), "report", "--in", _dir.Root);
 
-        Assert.Equal(ExitCodes.NotImplemented, exit);
-        Assert.Contains("not implemented", _stderr.ToString(), StringComparison.Ordinal);
+        Assert.Equal(ExitCodes.Fatal, exit);
+        Assert.Contains("no results files", _stderr.ToString(), StringComparison.Ordinal);
+        Assert.Equal(string.Empty, _stdout.ToString());
+    }
+
+    [Fact]
+    public async Task Report_on_a_missing_directory_exits_1()
+    {
+        var exit = await InvokeAsync(Answering(), "report", "--in", Path.Combine(_dir.Root, "nope"));
+
+        Assert.Equal(ExitCodes.Fatal, exit);
+        Assert.Contains("no such directory", _stderr.ToString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Report_reads_what_run_writes()
+    {
+        _dir.WithDeepset(DeepsetRows.Both);
+        var policies = _dir.WritePolicies(TestPolicyFiles.InboundAndOutbound);
+        var output = _dir.OutPath("2026-09-18-deepset.json");
+        Assert.Equal(ExitCodes.Ok, await InvokeAsync(Answering(), "run", "--dataset", "deepset", "--policies", policies, "--out", output, "--data-dir", _dir.Root));
+        _stdout.GetStringBuilder().Clear();
+
+        var exit = await InvokeAsync(Answering(), "report", "--in", Path.GetDirectoryName(output)!);
+
+        Assert.Equal(ExitCodes.Ok, exit);
+        var markdown = _stdout.ToString();
+        Assert.Contains("### deepset: `2026-09-18-deepset.json`", markdown, StringComparison.Ordinal);
+        Assert.Contains("#### `prompt_injection` (noul, scored on p(yes))", markdown, StringComparison.Ordinal);
+        Assert.Contains("#### `request_class` (choice, scored on p(prohibited))", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("harm_severity", markdown, StringComparison.Ordinal);
     }
 
     [Fact]

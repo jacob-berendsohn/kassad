@@ -4,7 +4,7 @@ A guardrail without published numbers is a toy. This directory holds the harness
 table in the root README.
 
 - `Kassad.Eval/` — the `kassad-eval` console app. `run` (roadmap 4.1) evaluates a policy file over a labeled dataset
-  and writes one result row per input; `report` (roadmap 4.2) will turn those files into the numbers.
+  and writes one result row per input; `report` (roadmap 4.2) turns those files into the numbers.
 - `datasets/` — one download script per dataset. Raw data lands in `data/` (git-ignored) and is never committed.
 - `results/` — dated JSON written by `run`. Committed, so the README table is reproducible.
 
@@ -61,9 +61,8 @@ Exit codes:
 
 | Code | Meaning |
 |---|---|
-| `0` | Every row was evaluated and the file was written. |
-| `1` | Nothing was written: bad arguments (System.CommandLine prints them), a dataset that is not downloaded (the message names the script), an invalid policy file, no key, or a first request the API rejected. |
-| `2` | The command is part of the contract but not implemented yet (`report`, until roadmap 4.2). |
+| `0` | `run`: every row was evaluated and the file was written. `report`: the report was printed. |
+| `1` | Nothing was written: bad arguments (System.CommandLine prints them), a dataset that is not downloaded (the message names the script), an invalid policy file, no key, or a first request the API rejected. For `report`: a missing directory, no results file in it, or a file it cannot read (the message names the file). |
 | `3` | The run completed and the file was written, but some rows carry a model error instead of an answer (`summary.errors`). |
 | `130` | Cancelled; the file holds the rows evaluated so far and says so. |
 
@@ -170,9 +169,51 @@ One row from `results/2026-09-18-deepset.json`:
 |---|---|---|---|---|---|
 | `results/2026-09-18-deepset.json` | deepset, train + test | 662 | 0 | the sample file's two inbound policies | `jev-latest`, answered by `jev-1.13.0` |
 
+## Reporting
+
+```bash
+dotnet run --project eval/Kassad.Eval -c Release -- report --in eval/results/ --format markdown
+```
+
+`report` needs no key and no network. It reads every `*.json` directly in `--in` (in file-name order, so dated names
+sort by date), refuses any file that is not schema version 1 or misses a field the schema requires, and prints GitHub
+markdown to stdout: one `###` section per file and one `####` section per policy, so the output can sit under the README's
+`## Numbers` heading (roadmap 4.4). `markdown` is the only `--format`. The output is plain ASCII with LF line endings and
+nothing time-dependent, so the same files always print the same bytes.
+
+Per file, one table: rows, rows per label, error rows, model latency p50 and p95, input tokens per check and cost per 1k
+checks. A check is one row: one request carrying every policy of the stage, so latency, tokens and cost are per check,
+not per policy. Per policy: ROC AUC, a table of operating points and, for probability scalars, a calibration table.
+
+How each number is computed (the report's closing paragraph says the same):
+
+| Number | Definition |
+|---|---|
+| Rows scored | Rows whose model call succeeded. Error rows (`error != null`, or the policy's verdict `from_error`) are left out of every number and counted. |
+| Scalar | What the sweep, AUC and calibration rank: a noul's `probability` (p(yes)); for a choice, the summed probability of the options whose `actions` entry is not `allow` (`p(prohibited)` for the sample's `request_class`; a choice that escalates nothing has no scalar); a score's `score`. |
+| Configured operating points | One per level the policy can resolve to above `allow`: each threshold that is set (noul, score), each `actions` level (choice), plus `review` when a confidence floor can send a verdict there. A row counts as positive when the action recorded in the run is at or above that level, so confidence floors count exactly as they did; for a noul this equals `p(yes) >= threshold`. The Rule column says what that meant for the policy. |
+| Sweep | `scalar >= t` for t = 0.1, 0.2, ..., 0.9; for a score, half levels from 0.5 to one half below the top level. |
+| Precision, recall, F1 | TP / (TP + FP), TP / (TP + FN), 2TP / (2TP + FP + FN). Precision is `n/a` when nothing crosses; F1 is 0 when TP is 0 and anything was missed or wrongly flagged. Three decimals. |
+| ROC AUC | The Mann-Whitney statistic of the scalar: the chance a random label-1 row scores above a random label-0 row, ties counting one half (the API rounds to two decimals, so ties are common). `n/a` without both labels. |
+| Calibration | Ten equal-width bins of the scalar, `[0.0, 0.1)` to `[0.9, 1.0]` (half-open, the last closed; the bin is chosen in decimal, so 0.7 lands in `[0.7, 0.8)`), each with its row count, mean predicted value and observed rate of label 1. Not shown for a score, which is a level index rather than a probability. |
+| Latency p50, p95 | Nearest rank over the answered rows' `latency_ms`: the model call as the engine timed it, client retries included. The run summary uses the same function. |
+| Cost per 1k checks | Mean `input_tokens` per answered check × 1,000 × $0.042 per 1M input tokens; output tokens are not billed. |
+
+Every policy is scored against the dataset's label, whether or not that label is what the policy asks about:
+`request_class` on deepset measures how well "prohibited" tracks "injection", which it was never written to do.
+
+The rate is the one publicly quoted when this was built, labeled "quoted, verify" in the output with its source
+([MarkTechPost, 2026-09-19](https://www.marktechpost.com/2026/09/19/typesafe-ai-releases-jev/): $0.042 per 1M input
+tokens, output free). TypeSafe's own docs published no pricing on 2026-09-22. The rate and its source are constants in
+`Kassad.Eval/Reporting/Pricing.cs`; replace them together when official pricing appears.
+
+`tests/Kassad.Eval.Tests/TestData/report-golden/` holds the golden test: a 20-row results file (one error row) whose
+numbers were computed by hand (the derivation is in `ReportGoldenTests`) and the markdown it must render to, byte for byte.
+`report --in tests/Kassad.Eval.Tests/TestData/report-golden` prints it.
+
 ## What we report
 
 Per policy, per threshold: precision, recall, F1. Plus ROC AUC, a calibration table (predicted vs. observed), p50/p95
-model latency, and cost per 1k checks at TypeSafe's quoted pricing. `report` lands in roadmap 4.2 and reads the files
-above; roadmap 4.4 regenerates the README table from them by CI on a schedule and on tag. Hand-edited numbers in the
-README are a bug.
+model latency, and cost per 1k checks at TypeSafe's quoted pricing, all produced by `report` from the files above;
+roadmap 4.4 regenerates the README table from them by CI on a schedule and on tag. Hand-edited numbers in the README are
+a bug.

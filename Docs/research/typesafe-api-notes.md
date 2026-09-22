@@ -59,7 +59,7 @@ Also observed, not recorded:
 
 - Questions in one request are evaluated independently and in parallel; adding questions "barely changes" latency.
 - Real-time latency on the order of 150 ms; third-party write-ups cite 70–500 ms.
-- ~100x cheaper than an LLM call; a Sept 2026 write-up cites $0.042 per million input tokens, output free.
+- ~100x cheaper than an LLM call; a Sept 2026 write-up cites $0.042 per million input tokens, output free ([MarkTechPost, 2026-09-19](https://www.marktechpost.com/2026/09/19/typesafe-ai-releases-jev/), checked 2026-09-22; the docs index at `llms.txt` lists no pricing page). `kassad-eval report` prices checks at this rate, labeled "quoted, verify" (roadmap 4.2).
 - Calibration is measured across groups of predictions; it does not guarantee any single answer.
 - Text input only. No images, audio, video. (See the `bounding_box` observation above.)
 - Choice accepts up to 255 options (per a third-party guide, not the official reference).

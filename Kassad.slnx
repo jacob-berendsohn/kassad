@@ -16,6 +16,7 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Kassad.AspNetCore.Tests/Kassad.AspNetCore.Tests.csproj" />
+    <Project Path="tests/Kassad.Eval.Tests/Kassad.Eval.Tests.csproj" />
     <Project Path="tests/Kassad.Tests/Kassad.Tests.csproj" />
     <Project Path="tests/Kassad.TypeSafe.Tests/Kassad.TypeSafe.Tests.csproj" />
   </Folder>

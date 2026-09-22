@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- The harness targets net10.0 only (eval/Directory.Build.props), so its tests do too. -->
+    <TargetFrameworks></TargetFrameworks>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../eval/Kassad.Eval/Kassad.Eval.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- The scripted model, linked from the project that owns it (no test-to-test project reference; see Kassad.AspNetCore.Tests.csproj). -->
+    <Compile Include="../Kassad.Tests/FakeDecisionModel.cs" Link="Shared/FakeDecisionModel.cs" />
+  </ItemGroup>
+</Project>

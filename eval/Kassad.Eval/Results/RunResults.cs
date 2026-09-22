@@ -140,6 +140,14 @@ internal sealed record RowResult
     /// <summary>Length of the text in UTF-16 characters.</summary>
     public required int TextChars { get; init; }
 
+    /// <summary>Grounding rows: hex SHA-256 of the UTF-8 source passage the claim was judged against; left out for other stages.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? PassageSha256 { get; init; }
+
+    /// <summary>Grounding rows: length of the source passage in UTF-16 characters; left out for other stages.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? PassageChars { get; init; }
+
     /// <summary>The stage outcome: the most severe action across the verdicts.</summary>
     public required string Outcome { get; init; }
 
@@ -186,6 +194,8 @@ internal sealed record RowResult
             Label = row.Label,
             TextSha256 = Sha256Hex(row.Text),
             TextChars = row.Text.Length,
+            PassageSha256 = row.SourcePassage is null ? null : Sha256Hex(row.SourcePassage),
+            PassageChars = row.SourcePassage?.Length,
             Outcome = Names.ActionName(result.Outcome),
             LatencyMs = Math.Round(result.ModelLatency.TotalMilliseconds, 1),
             InputTokens = result.Usage?.InputTokens,

@@ -6,6 +6,9 @@ internal static class EvalDatasets
     private static readonly IReadOnlyDictionary<string, IEvalDataset> ByName = new IEvalDataset[]
     {
         new DeepsetPromptInjections(),
+        new JailbreakBenchBehaviors(),
+        new ToxicChat(),
+        new VitaminC(),
     }.ToDictionary(d => d.Name, StringComparer.Ordinal);
 
     /// <summary>Every known dataset name, sorted.</summary>

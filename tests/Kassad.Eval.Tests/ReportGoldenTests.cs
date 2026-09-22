@@ -206,7 +206,7 @@ public sealed class ReportGoldenTests
             }
         }
 
-        Assert.Equal(5, tables); // the file summary, then operating points and calibration for each of the two policies
+        Assert.Equal(6, tables); // the summary over files, the file summary, then operating points and calibration for each of the two policies
     }
 
     private static int CellCount(string row) => row.Replace("\\|", string.Empty, StringComparison.Ordinal).Count(c => c == '|') - 1;

@@ -4,10 +4,11 @@ using System.Text;
 namespace Kassad.Eval.Reporting;
 
 /// <summary>
-/// Renders <see cref="FileReport"/>s as GitHub-flavored markdown. One <c>###</c> section per results file and one
-/// <c>####</c> section per policy, so the output can sit under the README's <c>## Numbers</c> heading (roadmap 4.4).
-/// Deterministic: no timestamps of its own, invariant culture, LF line endings, so the same files always render the
-/// same bytes. Rates to three decimals, latency to one, cost to four.
+/// Renders <see cref="FileReport"/>s as GitHub-flavored markdown: first a <c>### Summary</c> table with one row per
+/// policy per results file, so several datasets read side by side (roadmap 4.3), then one <c>###</c> section per
+/// results file and one <c>####</c> section per policy, so the output can sit under the README's <c>## Numbers</c>
+/// heading (roadmap 4.4). Deterministic: no timestamps of its own, invariant culture, LF line endings, so the same
+/// files always render the same bytes. Rates to three decimals, latency to one, cost to four.
 /// </summary>
 internal static class MarkdownReport
 {
@@ -18,6 +19,7 @@ internal static class MarkdownReport
         ArgumentNullException.ThrowIfNull(reports);
 
         var md = new StringBuilder();
+        RenderSummary(md, reports);
         foreach (var report in reports)
         {
             RenderFile(md, report);
@@ -25,6 +27,32 @@ internal static class MarkdownReport
 
         RenderMethod(md);
         return md.ToString();
+    }
+
+    /// <summary>
+    /// One table over every file, a row per policy: the numbers the README leads with, taken from the per-file sections
+    /// below (the operating point is the policy's highest configured level and its row in the policy's table).
+    /// </summary>
+    private static void RenderSummary(StringBuilder md, IReadOnlyList<FileReport> reports)
+    {
+        md.Append("### Summary\n\n");
+        md.Append("| Dataset | File | Stage | Policy | Rows scored | ROC AUC | Operating point | Precision | Recall | Latency p50 / p95 | Cost per 1k checks |\n");
+        md.Append("|---|---|---|---|---:|---:|---|---:|---:|---:|---:|\n");
+        foreach (var report in reports)
+        {
+            var doc = report.Document;
+            var latency = report.LatencyP50Ms is null ? NotApplicable : Invariant($"{Fixed(report.LatencyP50Ms, "0.0")} / {Fixed(report.LatencyP95Ms, "0.0")} ms");
+            foreach (var policy in report.Policies)
+            {
+                var point = policy.Configured.Count == 0 ? null : policy.Configured[^1];
+                var operating = point is null ? NotApplicable : Invariant($"`{point.Level}`: {Cell(point.Rule)}");
+                md.Append(Invariant($"| {Cell(doc.Dataset.Name)} | `{Cell(doc.FileName)}` | `{doc.Dataset.Stage}` | `{policy.Id}` | {policy.Scored} | {Rate(policy.RocAuc)} | {operating} | {Rate(point?.Counts.Precision)} | {Rate(point?.Counts.Recall)} | {latency} | {Usd(report.CostPer1kChecksUsd)} |\n"));
+            }
+        }
+
+        md.Append("\nOne row per policy per results file, in file order. Rows scored are the rows whose model call succeeded; ROC AUC ranks the policy's scalar over them. ");
+        md.Append("The operating point is the highest level the policy is configured to reach, with the rule that puts a row there and that rule's precision and recall, as in the policy's table below. ");
+        md.Append("Latency and cost are per check, one request carrying every policy of the stage, so a file's policies share them.\n\n");
     }
 
     private static void RenderFile(StringBuilder md, FileReport report)

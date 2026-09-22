@@ -2,7 +2,7 @@
 //
 // Contract (do not change without updating Docs/roadmap.md and README "Numbers"):
 //   kassad-eval run    --dataset <name> --policies <file> --out results/<date>-<dataset>.json   (roadmap 4.1)
-//   kassad-eval report --in results/ --format markdown                                            (roadmap 4.2, not yet built)
+//   kassad-eval report --in results/ --format markdown                                            (roadmap 4.2)
 //
 // Datasets are downloaded to eval/data/ by scripts in eval/datasets/ and never committed; eval/README.md documents
 // the JSON that `run` writes, one row per input. Metrics per policy (4.2): precision, recall, F1 at each configured

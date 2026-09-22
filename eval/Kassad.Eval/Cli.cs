@@ -1,5 +1,6 @@
 using System.CommandLine;
 using Kassad.Eval.Datasets;
+using Kassad.Eval.Reporting;
 using Kassad.Eval.Running;
 using Kassad.TypeSafe;
 
@@ -7,7 +8,7 @@ namespace Kassad.Eval;
 
 /// <summary>
 /// The <c>kassad-eval</c> command line. <c>run</c> evaluates a policy file over a labeled dataset and writes one row
-/// per input (roadmap 4.1); <c>report</c> turns results files into the README numbers (roadmap 4.2, not built yet).
+/// per input (roadmap 4.1); <c>report</c> turns results files into the README numbers (roadmap 4.2).
 /// Built with a real <see cref="TypeSafeClient"/> by default; tests hand in a model and writers of their own.
 /// </summary>
 internal static class Cli
@@ -20,7 +21,7 @@ internal static class Cli
 
         var root = new RootCommand("Kassad evaluation harness: runs policies over labeled datasets and reports the numbers.");
         root.Add(BuildRun(model, stdout, stderr));
-        root.Add(BuildReport(stderr));
+        root.Add(BuildReport(stdout, stderr));
         return root;
     }
 
@@ -120,11 +121,11 @@ internal static class Cli
         return run;
     }
 
-    private static Command BuildReport(TextWriter stderr)
+    private static Command BuildReport(TextWriter stdout, TextWriter stderr)
     {
         var input = new Option<DirectoryInfo>("--in")
         {
-            Description = "Directory of results files written by run.",
+            Description = "Directory of results files written by run; every *.json directly in it is reported, in file-name order.",
             Required = true,
         };
 
@@ -135,19 +136,32 @@ internal static class Cli
         };
         format.AcceptOnlyFromAmong("markdown");
 
-        var report = new Command("report", "Turn results files into the README numbers table (roadmap 4.2; not implemented yet).")
+        var report = new Command("report", "Turn results files into the README numbers: precision, recall and F1 per threshold, ROC AUC, calibration, latency and cost.")
         {
             input,
             format,
         };
 
-        report.SetAction(_ =>
-        {
-            stderr.WriteLine("kassad-eval report: not implemented yet. See Docs/roadmap.md, Phase 4.2.");
-            return ExitCodes.NotImplemented;
-        });
+        report.SetAction((parseResult, cancellationToken) =>
+            ReportAsync(parseResult.GetRequiredValue(input).ToString(), stdout, stderr, cancellationToken));
 
         return report;
+    }
+
+    private static async Task<int> ReportAsync(string directory, TextWriter stdout, TextWriter stderr, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var documents = await ResultsReader.ReadDirectoryAsync(directory, cancellationToken).ConfigureAwait(false);
+            var markdown = MarkdownReport.Render(documents.Select(ReportBuilder.Build).ToArray());
+            await stdout.WriteAsync(markdown).ConfigureAwait(false);
+            return ExitCodes.Ok;
+        }
+        catch (EvalUsageException ex)
+        {
+            await stderr.WriteLineAsync($"kassad-eval: {ex.Message}").ConfigureAwait(false);
+            return ExitCodes.Fatal;
+        }
     }
 
     private static async Task<int> RunAsync(RunSettings settings, IDecisionModel? model, TextWriter stdout, TextWriter stderr, CancellationToken cancellationToken)

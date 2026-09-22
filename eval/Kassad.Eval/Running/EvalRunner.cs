@@ -3,6 +3,7 @@ using System.Reflection;
 using System.Security.Cryptography;
 using Kassad.Engine;
 using Kassad.Eval.Datasets;
+using Kassad.Eval.Reporting;
 using Kassad.Eval.Results;
 using Kassad.Policies;
 using Kassad.TypeSafe;
@@ -210,17 +211,9 @@ internal sealed class EvalRunner
         await _stdout.WriteLineAsync($"  wrote {outPath}").ConfigureAwait(false);
     }
 
-    /// <summary>Nearest-rank percentile of a sorted array, formatted; <c>n/a</c> when there is nothing to rank.</summary>
-    private static string Percentile(double[] sorted, double p)
-    {
-        if (sorted.Length == 0)
-        {
-            return "n/a";
-        }
-
-        var rank = Math.Clamp((int)Math.Ceiling(p * sorted.Length) - 1, 0, sorted.Length - 1);
-        return Invariant($"{sorted[rank]:0.0} ms");
-    }
+    /// <summary>Nearest-rank percentile of a sorted array (<see cref="Metrics.NearestRank"/>, as the report computes it), formatted; <c>n/a</c> when there is nothing to rank.</summary>
+    private static string Percentile(double[] sorted, double p) =>
+        Metrics.NearestRank(sorted, p) is { } value ? Invariant($"{value:0.0} ms") : "n/a";
 
     private static string Invariant(FormattableString text) => FormattableString.Invariant(text);
 }

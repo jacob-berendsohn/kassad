@@ -25,11 +25,11 @@ public sealed class ReportBuilderTests : IDisposable
           "topic":{"type":"choice","choice":"billing","probabilities":{"billing":0.9,"other":0.1},"confidence":0.9,"value":0.9,"action":"allow","from_error":false} } }
         """);
 
-    private static string Document(string rows, int schemaVersion = 1, string sample = "null", bool interrupted = false, string policies = Policies) => $$"""
+    private static string Document(string rows, int schemaVersion = 1, string sample = "null", bool interrupted = false, string policies = Policies, string dataset = "fake") => $$"""
         {
           "schema_version": {{schemaVersion}},
           "run": { "started_at": "2026-09-22T00:00:00Z", "finished_at": "2026-09-22T00:00:01Z", "duration_ms": 1000, "concurrency": 1, "interrupted": {{(interrupted ? "true" : "false")}} },
-          "dataset": { "name": "fake", "source": "memory", "revision": null, "license": null, "downloaded_at": null, "splits": ["test"],
+          "dataset": { "name": "{{dataset}}", "source": "memory", "revision": null, "license": null, "downloaded_at": null, "splits": ["test"],
                        "rows_total": 10, "rows_evaluated": 4, "sample": {{sample}}, "positive_label": "harmful", "stage": "outbound", "state_shape": "{ completion }" },
           "policies": { "file": "p.json", "sha256": "abc", "stage": "outbound", "evaluated": {{policies}} },
           "model": { "name": "typesafe:jev-latest", "resolved": [] },
@@ -144,5 +144,43 @@ public sealed class ReportBuilderTests : IDisposable
         var ex = await Assert.ThrowsAsync<EvalUsageException>(() => ReadAsync(json, "broken.json"));
 
         Assert.Contains("broken.json", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Summary_table_lists_every_policy_of_every_file_in_file_order_at_the_highest_configured_level()
+    {
+        var first = await ReadAsync(Document(FourRows, dataset: "alpha"), "2026-09-21-alpha.json");
+        var second = await ReadAsync(Document(FourRows, dataset: "beta"), "2026-09-22-beta.json");
+
+        var markdown = MarkdownReport.Render([ReportBuilder.Build(first), ReportBuilder.Build(second)]);
+
+        var lines = markdown.Split('\n');
+        Assert.Equal("### Summary", lines[0]);
+        var table = lines.Skip(2).TakeWhile(l => l.StartsWith('|')).ToArray();
+        Assert.Equal(6, table.Length); // header, delimiter, two policies per file
+
+        // harm: block is the highest configured level, Confusion(1, 0, 1, 2) -> P 1.000, R 0.500; AUC 0.75; latency 101 / 103 ms over 100..103; 500 tokens -> $0.0210.
+        Assert.Equal("| alpha | `2026-09-21-alpha.json` | `outbound` | `harm` | 4 | 0.750 | `block`: score >= 2.60, confidence >= 0.40 | 1.000 | 0.500 | 101.0 / 103.0 ms | $0.0210 |", table[2]);
+        // topic escalates nothing: no scalar, no operating point.
+        Assert.Equal("| alpha | `2026-09-21-alpha.json` | `outbound` | `topic` | 4 | n/a | n/a | n/a | n/a | 101.0 / 103.0 ms | $0.0210 |", table[3]);
+        Assert.StartsWith("| beta | `2026-09-22-beta.json` | `outbound` | `harm` |", table[4], StringComparison.Ordinal);
+        Assert.StartsWith("| beta | `2026-09-22-beta.json` | `outbound` | `topic` |", table[5], StringComparison.Ordinal);
+
+        // The per-file sections follow the summary in the same order, and the summary's numbers are the sections' numbers.
+        var alpha = markdown.IndexOf("### alpha: `2026-09-21-alpha.json`", StringComparison.Ordinal);
+        var beta = markdown.IndexOf("### beta: `2026-09-22-beta.json`", StringComparison.Ordinal);
+        Assert.True(0 < alpha && alpha < beta);
+        Assert.Contains("| `block` (configured) | score >= 2.60, confidence >= 0.40 | 1.000 | 0.500 | 0.667 | 1 | 0 | 1 | 2 |", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Summary_rows_show_n_a_when_no_call_was_answered()
+    {
+        var errorRow = """{"id":"test/0","label":1,"latency_ms":5000,"input_tokens":null,"error":"boom","verdicts":{"harm":{"type":"score","action":"block","from_error":true,"error":"boom"},"topic":{"type":"choice","action":"allow","from_error":true,"error":"boom"}}}""";
+        var report = ReportBuilder.Build(await ReadAsync(Document(errorRow)));
+
+        var markdown = MarkdownReport.Render([report]);
+
+        Assert.Contains("| fake | `r.json` | `outbound` | `harm` | 0 | n/a | `block`: score >= 2.60, confidence >= 0.40 | n/a | n/a | n/a | n/a |", markdown, StringComparison.Ordinal);
     }
 }

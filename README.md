@@ -13,7 +13,8 @@ Every policy for a stage is batched into one request, so ten checks cost one rou
 
 > **Status: pre-release scaffold.** The engine, policy format, and TypeSafe client are in place and
 > unit-tested; the middleware and handler are functional and evaluate the user's message out of OpenAI- and
-> Anthropic-shaped bodies; the eval harness runs its first dataset end to end, but no numbers are published yet.
+> Anthropic-shaped bodies; the eval harness runs three inbound datasets and a grounding set end to end, but no
+> numbers are published yet.
 > Do not deploy in front of production traffic until the README has a numbers table. See
 > [`Docs/roadmap.md`](https://github.com/jacob-berendsohn/kassad/blob/main/Docs/roadmap.md).
 

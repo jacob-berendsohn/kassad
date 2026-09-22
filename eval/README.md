@@ -13,19 +13,25 @@ table in the root README.
 Everything below runs from the repository root, with `TYPESAFE_API_KEY` in the environment (the harness reads it the
 way the sample does; nothing else is configured).
 
-1. Download the dataset once. The script needs only `curl`:
+1. Download the dataset once. Each script needs only `curl`:
 
    ```bash
    eval/datasets/deepset-prompt-injections.sh
+   eval/datasets/jailbreakbench-behaviors.sh
+   eval/datasets/toxicchat.sh
+   eval/datasets/vitaminc.sh
    ```
 
-   It fills `eval/data/deepset-prompt-injections/` with JSON pages of rows, a `manifest.json` (source revision, download
-   time) and the repository's `dataset-info.json` (license).
+   Each fills its directory under `eval/data/` with the rows (JSON pages, or the canonical `test.jsonl` for VitaminC), a
+   `manifest.json` (source revision, download time, row count) and the repository's `dataset-info.json` (license). The
+   ToxicChat script fetches 102 pages two seconds apart, about four minutes, because the datasets-server rate-limits
+   faster fetches (a 429 after about 55 pages on 2026-09-22).
 
 2. Run a policy file over it:
 
    ```bash
    TYPESAFE_API_KEY=... dotnet run --project eval/Kassad.Eval -c Release -- run --dataset deepset --policies samples/Kassad.Sample.ChatApi/kassad.policies.json --out eval/results/2026-09-18-deepset.json
+   TYPESAFE_API_KEY=... dotnet run --project eval/Kassad.Eval -c Release -- run --dataset vitaminc --sample 2000 --policies samples/Kassad.Sample.ChatApi/kassad.policies.json --out eval/results/2026-09-22-vitaminc.json
    ```
 
    The executable is named `kassad-eval` (`eval/Kassad.Eval/bin/Release/net10.0/kassad-eval`), so the roadmap's
@@ -33,7 +39,7 @@ way the sample does; nothing else is configured).
 
 | Option | Default | Meaning |
 |---|---|---|
-| `--dataset <name>` | required | Which dataset: `deepset` today; the table below grows with roadmap 4.3. |
+| `--dataset <name>` | required | Which dataset: `deepset`, `jailbreakbench` or `toxicchat` (inbound), or `vitaminc` (grounding); see Datasets below. |
 | `--policies <file>` | required | The policy file (`Docs/specs/policy-file-format.md`). Only the policies for the dataset's stage are evaluated. |
 | `--out <path>` | required | The results file. Replaced if it exists; the directory is created. |
 | `--data-dir <dir>` | `eval/data` | Where the download scripts put the raw data. |
@@ -46,9 +52,11 @@ What a run does:
 
 - Loads and validates the policy file with `PolicySet.FromFile`, exactly as `AddKassad` does, and keeps the policies of
   the dataset's stage. A file with none for that stage is an error.
-- Sends every row through `GuardrailEngine` over `TypeSafeClient`, so the verdicts are the shipped engine's. Each row's
-  text is evaluated as `{ "user_message": "<text>" }`, the state the middleware sends for a chat request without a system
-  prompt (`Docs/specs/state-extraction.md`), and one request carries all of the stage's policies, as in production.
+- Sends every row through `GuardrailEngine` over `TypeSafeClient`, so the verdicts are the shipped engine's. An inbound
+  row's text is evaluated as `{ "user_message": "<text>" }`, the state the middleware sends for a chat request without a
+  system prompt (`Docs/specs/state-extraction.md`); a grounding row as `{ "claim": ..., "source_passage": ... }`, the
+  `GroundingState` that `EvaluateGroundingAsync` sends (no `source_id`). One request carries all of the stage's
+  policies, as in production.
 - Runs `--concurrency` rows at a time. Retries are the client's (`TypeSafeClient`, set to 5 retries with up to 30 s between
   them, honoring `Retry-After`). A failure that survives them becomes the policies' `on_error` verdicts, recorded on the
   row with `from_error: true` and `error`, and the run continues; it does not retry the row again.
@@ -79,18 +87,28 @@ size, seed and method; it is `null` for a full run.
 | Dataset | `--dataset` | Stage | Rows | License | Script | Label 1 means |
 |---|---|---|---|---|---|---|
 | [deepset/prompt-injections](https://huggingface.co/datasets/deepset/prompt-injections) | `deepset` | inbound | 546 train + 116 test | Apache-2.0 | `datasets/deepset-prompt-injections.sh` | prompt injection (0 = legitimate request) |
-| JailbreakBench | roadmap 4.3 | inbound | | | | jailbreak |
-| ToxicChat | roadmap 4.3, if the license allows | inbound | | | | unsafe request |
-| A grounding set (TBD) | roadmap 4.3 | grounding | | | | unsupported claim |
+| [JailbreakBench/JBB-Behaviors](https://huggingface.co/datasets/JailbreakBench/JBB-Behaviors), config `behaviors` | `jailbreakbench` | inbound | 100 harmful + 100 benign | MIT | `datasets/jailbreakbench-behaviors.sh` | harmful request (the `Goal` of a harmful behavior; 0 = its benign counterpart) |
+| [lmsys/toxic-chat](https://huggingface.co/datasets/lmsys/toxic-chat), config `toxicchat0124` | `toxicchat` | inbound | 5,082 train + 5,083 test | CC BY-NC 4.0 | `datasets/toxicchat.sh` | toxic prompt (`toxicity`; the `jailbreaking` flag is not the label, and every jailbreaking row in 0124 is also toxic) |
+| [tals/vitaminc](https://huggingface.co/datasets/tals/vitaminc), split `test` | `vitaminc` | grounding | 55,197 (run as a stratified sample) | CC BY-SA 3.0 | `datasets/vitaminc.sh` | unsupported claim (REFUTES or NOT ENOUGH INFO; 0 = SUPPORTS) |
 
-The deepset repository's canonical files are Parquet, which .NET cannot read without another package. The script
-fetches the same rows as JSON pages (100 rows each) from the Hugging Face datasets-server rows API instead, records the
-repository revision it saw in `manifest.json`, and the adapter refuses pages with truncated cells, duplicate rows or
-fewer rows than the source reports. Both splits are evaluated: nothing is trained here, so the split is only a tag on
-each row (`split`), and the file carries the dataset revision so a run can be traced back to the exact rows.
+`Docs/research/eval-datasets.md` records why each set was chosen, what its columns and labels mean, the license
+reading behind each, and the grounding-set comparison. In short: the two JailbreakBench splits are plain harmful
+requests and their benign counterparts, not adversarial jailbreak prompts; ToxicChat is used in full under its
+non-commercial license, for evaluation only, with hashes and labels (never text) in the committed file; VitaminC pairs
+each claim with the one Wikipedia sentence that supports, refutes or does not address it, and its `claim` and
+`evidence` become `claim` and `source_passage`.
 
-Adding a dataset (roadmap 4.3) is one download script, one `IEvalDataset` class that maps its rows to `(text, label)`
-and declares its stage and state shape, and one line in `EvalDatasets`.
+The deepset, JailbreakBench and ToxicChat repositories' canonical files are Parquet or CSV, which .NET cannot read
+without another package. Their scripts fetch the same rows as JSON pages (100 rows each) from the Hugging Face
+datasets-server rows API instead and record the repository revision they saw in `manifest.json`; the shared page
+reader refuses a page whose needed cells the API truncated, duplicate rows and a split shorter than the source
+reports. VitaminC's canonical file is JSON Lines, so its script fetches `test.jsonl` itself, by revision. Every split a
+script downloads is evaluated: nothing is trained here, so the split is only a tag on each row (`split`), and the file
+carries the dataset revision so a run can be traced back to the exact rows.
+
+Adding a dataset is one download script, one `IEvalDataset` class that maps its rows to `(text, label)` (plus a source
+passage for a grounding set) and declares its stage and state shape, and one line in `EvalDatasets`. A rows-API dataset
+is a column mapping over `RowsApiPages`; `DownloadRecords` reads the manifest and license for any layout.
 
 ## Results file
 
@@ -116,7 +134,7 @@ Envelope:
 | `dataset.sample` | `null` for a full run, else `{ size, seed, method }`. |
 | `dataset.positive_label` | What `label = 1` means, e.g. `injection`. |
 | `dataset.stage` | The stage evaluated (`inbound`, `outbound`, `tool_call`, `grounding`). |
-| `dataset.state_shape` | How each row's text reached the model, e.g. `{ user_message }`. |
+| `dataset.state_shape` | How each row's text reached the model: `{ user_message }` for the inbound sets, `{ claim, source_passage }` for grounding. |
 | `policies.file`, `policies.sha256` | The policy file as given (forward slashes) and the SHA-256 of its bytes: which thresholds these rows were judged against. |
 | `policies.stage` | The stage whose policies ran. |
 | `policies.evaluated[]` | Those policies in file order: `id`, `type` (`noul`, `choice`, `score`), `thresholds` (`flag`, `review`, `block`; `null` for choice), `actions` (option to `{ action, min_confidence }`; `null` for noul and score), `min_confidence`, `on_error`. |
@@ -135,7 +153,8 @@ Row (`rows[]`):
 | `id` | `split/index`, the source row. |
 | `split`, `index` | The split and the row's index within it, as the source numbers it. |
 | `label` | `1` for the positive class (`dataset.positive_label`), `0` otherwise. |
-| `text_sha256`, `text_chars` | SHA-256 (hex) of the UTF-8 text and its length in UTF-16 characters; the text itself is not stored. |
+| `text_sha256`, `text_chars` | SHA-256 (hex) of the UTF-8 text (for grounding, the claim) and its length in UTF-16 characters; the text itself is not stored. |
+| `passage_sha256`, `passage_chars` | Grounding rows only: the same two for the source passage. Absent on inbound rows. |
 | `outcome` | The stage outcome: the most severe action across the verdicts (`allow`, `flag`, `review`, `block`). |
 | `latency_ms` | The engine's `StageResult.ModelLatency`, one decimal: wall-clock time of the model call, client retries included, the same measurement the `kassad.model.latency` histogram records (`Docs/specs/telemetry.md`). One value per row because one request carries every policy. |
 | `input_tokens`, `output_tokens` | What the model reported for the request; `null` when the call failed. |
@@ -168,6 +187,12 @@ One row from `results/2026-09-18-deepset.json`:
 | File | Dataset | Rows | Errors | Policies | Model |
 |---|---|---|---|---|---|
 | `results/2026-09-18-deepset.json` | deepset, train + test | 662 | 0 | the sample file's two inbound policies | `jev-latest`, answered by `jev-1.13.0` |
+| `results/2026-09-22-jailbreakbench.json` | jailbreakbench, harmful + benign | 200 | 0 | the sample file's two inbound policies | `jev-latest`, answered by `jev-1.13.0` |
+| `results/2026-09-22-toxicchat.json` | toxicchat, train + test | 10,165 | 0 | the sample file's two inbound policies | `jev-latest`, answered by `jev-1.13.0` |
+| `results/2026-09-22-vitaminc.json` | vitaminc, test: a 2,000-row stratified sample of 55,197 (seed 0) | 2,000 | 0 | the sample file's two grounding policies | `jev-latest`, answered by `jev-1.13.0` |
+
+All runs used the same policy file (`samples/Kassad.Sample.ChatApi/kassad.policies.json`, SHA-256 `21461a62…`) at
+concurrency 4, so their latency columns are comparable.
 
 ## Reporting
 
@@ -177,9 +202,15 @@ dotnet run --project eval/Kassad.Eval -c Release -- report --in eval/results/ --
 
 `report` needs no key and no network. It reads every `*.json` directly in `--in` (in file-name order, so dated names
 sort by date), refuses any file that is not schema version 1 or misses a field the schema requires, and prints GitHub
-markdown to stdout: one `###` section per file and one `####` section per policy, so the output can sit under the README's
-`## Numbers` heading (roadmap 4.4). `markdown` is the only `--format`. The output is plain ASCII with LF line endings and
-nothing time-dependent, so the same files always print the same bytes.
+markdown to stdout: a `### Summary` table over every file, then one `###` section per file and one `####` section per
+policy, so the output can sit under the README's `## Numbers` heading (roadmap 4.4). `markdown` is the only `--format`.
+The output is plain ASCII with LF line endings and nothing time-dependent, so the same files always print the same bytes.
+
+The summary has one row per policy per results file, in file order: dataset, file, stage, policy, rows scored, ROC AUC,
+the policy's operating point (its highest configured level and the rule that puts a row there) with that rule's
+precision and recall, latency p50 / p95 and cost per 1k checks. Every value repeats a number from the file's section
+below it, so several datasets read side by side without hiding anything; two files for the same dataset are two rows,
+and the file name tells them apart (which file the README shows is roadmap 4.4's call).
 
 Per file, one table: rows, rows per label, error rows, model latency p50 and p95, input tokens per check and cost per 1k
 checks. A check is one row: one request carrying every policy of the stage, so latency, tokens and cost are per check,
@@ -200,7 +231,9 @@ How each number is computed (the report's closing paragraph says the same):
 | Cost per 1k checks | Mean `input_tokens` per answered check × 1,000 × $0.042 per 1M input tokens; output tokens are not billed. |
 
 Every policy is scored against the dataset's label, whether or not that label is what the policy asks about:
-`request_class` on deepset measures how well "prohibited" tracks "injection", which it was never written to do.
+`request_class` on deepset measures how well "prohibited" tracks "injection", which it was never written to do, and
+`prompt_injection` on JailbreakBench has recall 0 at every configured level because a harmful request is not an attempt
+to override the assistant's instructions. Read a policy's row against the dataset's label, named in the header.
 
 The rate is the one publicly quoted when this was built, labeled "quoted, verify" in the output with its source
 ([MarkTechPost, 2026-09-19](https://www.marktechpost.com/2026/09/19/typesafe-ai-releases-jev/): $0.042 per 1M input

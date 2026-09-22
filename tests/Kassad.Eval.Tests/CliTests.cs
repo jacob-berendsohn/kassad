@@ -166,4 +166,54 @@ public sealed class CliTests : IDisposable
         Assert.Contains("no inbound policies", _stderr.ToString(), StringComparison.Ordinal);
         Assert.False(File.Exists(output));
     }
+
+    [Fact]
+    public async Task Run_names_every_dataset_when_the_name_is_unknown()
+    {
+        var exit = await InvokeAsync(Answering(), "run", "--dataset", "nope", "--policies", "p.json", "--out", "o.json");
+
+        Assert.Equal(ExitCodes.Fatal, exit);
+        foreach (var name in new[] { "deepset", "jailbreakbench", "toxicchat", "vitaminc" })
+        {
+            Assert.Contains(name, _stderr.ToString(), StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
+    public async Task Run_evaluates_the_downloaded_vitaminc_file_end_to_end_and_report_summarizes_it()
+    {
+        _dir.WithVitaminC(VitaminCLines.Six);
+        var policies = _dir.WritePolicies(TestPolicyFiles.Grounding);
+        var output = _dir.OutPath("2026-09-22-vitaminc.json");
+        var model = new FakeDecisionModel()
+            .Answer("claim_unsupported", new NoulAnswer(0.9))
+            .Answer("grounding_strength", new ScoreAnswer(2.7, ["Fully supported", "Partially supported", "Not addressed", "Contradicted"], [0.0, 0.1, 0.1, 0.8], 0.8));
+
+        var exit = await InvokeAsync(model, "run", "--dataset", "vitaminc", "--policies", policies, "--out", output, "--data-dir", _dir.Root);
+
+        Assert.Equal(ExitCodes.Ok, exit);
+        using (var document = JsonDocument.Parse(File.ReadAllText(output)))
+        {
+            var root = document.RootElement;
+            Assert.Equal("vitaminc", root.GetProperty("dataset").GetProperty("name").GetString());
+            Assert.Equal("grounding", root.GetProperty("dataset").GetProperty("stage").GetString());
+            Assert.Equal("cc-by-sa-3.0", root.GetProperty("dataset").GetProperty("license").GetString());
+            Assert.Equal("be6febb761b0b2807687e61e0b5282e459df2fa0", root.GetProperty("dataset").GetProperty("revision").GetString());
+            Assert.Equal(Enumerable.Range(0, 6).Select(i => $"test/{i}"), root.GetProperty("rows").EnumerateArray().Select(r => r.GetProperty("id").GetString()));
+            Assert.All(root.GetProperty("rows").EnumerateArray(), r => Assert.Equal("block", r.GetProperty("outcome").GetString()));
+            Assert.All(root.GetProperty("rows").EnumerateArray(), r => Assert.True(r.TryGetProperty("passage_sha256", out _)));
+        }
+
+        _stdout.GetStringBuilder().Clear();
+        exit = await InvokeAsync(model, "report", "--in", Path.GetDirectoryName(output)!);
+
+        Assert.Equal(ExitCodes.Ok, exit);
+        var markdown = _stdout.ToString();
+        Assert.StartsWith("### Summary\n", markdown, StringComparison.Ordinal);
+        Assert.Contains("| vitaminc | `2026-09-22-vitaminc.json` | `grounding` | `claim_unsupported` | 6 |", markdown, StringComparison.Ordinal);
+        Assert.Contains("| vitaminc | `2026-09-22-vitaminc.json` | `grounding` | `grounding_strength` | 6 |", markdown, StringComparison.Ordinal);
+        Assert.Contains("### vitaminc: `2026-09-22-vitaminc.json`", markdown, StringComparison.Ordinal);
+        Assert.Contains("#### `grounding_strength` (score, scored on score)", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("prompt_injection", markdown, StringComparison.Ordinal);
+    }
 }

@@ -3,8 +3,9 @@ namespace Kassad.Eval.Datasets;
 /// <summary>
 /// A labeled public dataset the harness can evaluate. A download script under <c>eval/datasets/</c> puts the raw data
 /// under the data directory (git-ignored, never committed); the adapter reads it back as rows of <c>(text, label)</c>
-/// and says which stage's policies apply and what the state sent to the model looks like. Adding a dataset (roadmap
-/// 4.3) means one script, one class and one line in <see cref="EvalDatasets"/>.
+/// (plus a source passage for the grounding stage) and says which stage's policies apply and what the state sent to
+/// the model looks like. Adding a dataset means one script, one class and one line in <see cref="EvalDatasets"/>;
+/// <see cref="RowsApiPages"/> and <see cref="DownloadRecords"/> do the reading the adapters share.
 /// </summary>
 internal interface IEvalDataset
 {
@@ -36,9 +37,10 @@ internal interface IEvalDataset
 /// <summary>One labeled input.</summary>
 /// <param name="Split">The source's split the row belongs to, e.g. <c>train</c>.</param>
 /// <param name="Index">The row's index within its split, as the source numbers it.</param>
-/// <param name="Text">The text to evaluate. Hashed, never copied, into the results file.</param>
+/// <param name="Text">The text to evaluate (for a grounding row, the claim). Hashed, never copied, into the results file.</param>
 /// <param name="Label">1 for the positive class the guardrail should catch, 0 otherwise.</param>
-internal sealed record EvalRow(string Split, int Index, string Text, int Label)
+/// <param name="SourcePassage">For a grounding row, the passage the claim in <paramref name="Text"/> cites, verbatim; <c>null</c> for an inbound row. Hashed, never copied, into the results file like the text.</param>
+internal sealed record EvalRow(string Split, int Index, string Text, int Label, string? SourcePassage = null)
 {
     /// <summary><c>split/index</c>: joins a result row back to its source row without the text.</summary>
     public string Id => $"{Split}/{Index}";

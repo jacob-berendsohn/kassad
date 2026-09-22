@@ -1,3 +1,12 @@
+### Summary
+
+| Dataset | File | Stage | Policy | Rows scored | ROC AUC | Operating point | Precision | Recall | Latency p50 / p95 | Cost per 1k checks |
+|---|---|---|---|---:|---:|---|---:|---:|---:|---:|
+| golden | `golden-20.json` | `inbound` | `prompt_injection` | 19 | 0.852 | `block`: p(yes) >= 0.85 | 0.800 | 0.500 | 190.0 / 280.0 ms | $0.0208 |
+| golden | `golden-20.json` | `inbound` | `request_class` | 19 | 0.801 | `block`: chose prohibited, confidence >= 0.70 | 0.667 | 0.250 | 190.0 / 280.0 ms | $0.0208 |
+
+One row per policy per results file, in file order. Rows scored are the rows whose model call succeeded; ROC AUC ranks the policy's scalar over them. The operating point is the highest level the policy is configured to reach, with the rule that puts a row there and that rule's precision and recall, as in the policy's table below. Latency and cost are per check, one request carrying every policy of the stage, so a file's policies share them.
+
 ### golden: `golden-20.json`
 
 Source: hand-computed fixture (tests/Kassad.Eval.Tests/TestData/report-golden), splits test: the full set of 20 rows, label 1 = injection. Stage `inbound`, state `{ user_message }`, policies from `samples/Kassad.Sample.ChatApi/kassad.policies.json` (SHA-256 `21461a62`). Model `typesafe:jev-latest`, answered by `jev-1.13.0`.

@@ -343,4 +343,60 @@ public sealed class EvalRunnerTests : IDisposable
         Assert.Contains("70 input / 7 output tokens", summary, StringComparison.Ordinal);
         Assert.Contains("wrote " + _dir.OutPath(), summary, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public async Task A_grounding_dataset_sends_the_grounding_state_and_records_the_passage_hash()
+    {
+        var fake = new FakeDecisionModel()
+            .Answer("claim_unsupported", new NoulAnswer(0.2))
+            .Answer("grounding_strength", new ScoreAnswer(0.5, ["Fully supported", "Partially supported", "Not addressed", "Contradicted"], [0.6, 0.3, 0.1, 0.0], 0.9));
+        var dataset = new FakeGroundingDataset(
+            ("The Rasmus has sold more than 4.5 million albums worldwide .", "The Rasmus has sold 5 million albums worldwide .", 0),
+            ("The Rasmus has sold less than 4.5 million albums worldwide .", "The Rasmus has sold 5 million albums worldwide .", 1));
+        var settings = new RunSettings
+        {
+            DatasetName = dataset.Name,
+            PoliciesPath = _dir.WritePolicies(TestPolicyFiles.Grounding),
+            OutPath = _dir.OutPath(),
+            DataDir = _dir.Root,
+            Concurrency = 1,
+        };
+
+        var exit = await new EvalRunner(fake, _stdout, _stderr).RunAsync(settings, dataset, CancellationToken.None);
+
+        Assert.Equal(ExitCodes.Ok, exit);
+        Assert.Equal(2, fake.Requests.Count);
+        var state = Assert.IsType<GroundingState>(fake.Requests[0].State);
+        Assert.Equal(dataset.Rows[0].Text, state.Claim);
+        Assert.Equal(dataset.Rows[0].SourcePassage, state.SourcePassage);
+        Assert.Null(state.SourceId);
+        Assert.All(fake.Requests, r => Assert.Equal(["claim_unsupported", "grounding_strength"], r.Questions.Keys.Order(StringComparer.Ordinal)));
+
+        using var document = JsonDocument.Parse(await File.ReadAllTextAsync(settings.OutPath));
+        var root = document.RootElement;
+        Assert.Equal("grounding", root.GetProperty("dataset").GetProperty("stage").GetString());
+        Assert.Equal("{ claim, source_passage }", root.GetProperty("dataset").GetProperty("state_shape").GetString());
+        Assert.Equal("unsupported", root.GetProperty("dataset").GetProperty("positive_label").GetString());
+        Assert.Equal("grounding", root.GetProperty("policies").GetProperty("stage").GetString());
+        Assert.Equal(["claim_unsupported", "grounding_strength"], root.GetProperty("policies").GetProperty("evaluated").EnumerateArray().Select(p => p.GetProperty("id").GetString()));
+
+        var row = root.GetProperty("rows")[1];
+        Assert.Equal(
+            ["id", "split", "index", "label", "text_sha256", "text_chars", "passage_sha256", "passage_chars", "outcome", "latency_ms", "input_tokens", "output_tokens", "error", "verdicts"],
+            row.EnumerateObject().Select(p => p.Name));
+        Assert.Equal("test/1", row.GetProperty("id").GetString());
+        Assert.Equal(1, row.GetProperty("label").GetInt32());
+        Assert.Equal(Sha256(dataset.Rows[1].Text), row.GetProperty("text_sha256").GetString());
+        Assert.Equal(Sha256(dataset.Rows[1].SourcePassage!), row.GetProperty("passage_sha256").GetString());
+        Assert.Equal(dataset.Rows[1].SourcePassage!.Length, row.GetProperty("passage_chars").GetInt32());
+        Assert.Equal("allow", row.GetProperty("outcome").GetString());
+
+        var score = row.GetProperty("verdicts").GetProperty("grounding_strength");
+        Assert.Equal(["type", "probabilities", "score", "confidence", "value", "action", "from_error"], score.EnumerateObject().Select(p => p.Name));
+        Assert.Equal(0.5, score.GetProperty("score").GetDouble());
+        Assert.Equal(4, score.GetProperty("probabilities").GetArrayLength());
+        Assert.Equal("allow", score.GetProperty("action").GetString());
+    }
+
+    private static string Sha256(string text) => Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(text)));
 }

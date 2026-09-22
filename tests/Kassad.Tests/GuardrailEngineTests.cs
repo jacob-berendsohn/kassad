@@ -97,8 +97,8 @@ public class GuardrailEngineTests
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => engine.EvaluateAsync(Stage.Inbound, "x", cts.Token));
     }
 
-    // The 50 ms budget / 500 ms model case with its wall-clock bound lives in GuardrailEngineBudgetTimingTests,
-    // which runs after the parallel collections so the bound measures the engine and not runner contention.
+    // The 50 ms budget / one-minute model case with the suite's one wall-clock bound lives in
+    // GuardrailEngineBudgetTimingTests; its comments say what that bound can and cannot show.
 
     [Fact]
     public async Task Model_that_answers_within_the_budget_is_unaffected()

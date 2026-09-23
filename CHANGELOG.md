@@ -6,6 +6,9 @@ Versions come from git tags via MinVer; nothing here is hand-numbered until a ta
 
 ## [Unreleased]
 
+### Fixed
+- Eval: the `Eval` workflow's drift check no longer runs on pull requests that Dependabot opens. GitHub withholds repository secrets from Dependabot-triggered runs, so every bump of an action the workflow uses (each edits `.github/workflows/eval.yml`, one of the workflow's `pull_request` paths) got past the same-repository gate and failed at "Run the fixed samples" with `kassad-eval: No TypeSafe API key` instead of skipping. The `drift-check` job now also requires `github.actor != 'dependabot[bot]'`; a bumped action is exercised by the next weekly or tag run.
+
 ## [0.1.0] - 2026-09-23
 
 First release; it supersedes `0.1.0-preview.1` (2026-09-17), which previewed the release path with the scaffold and never had a section of its own. The entries below record everything since the initial scaffold.

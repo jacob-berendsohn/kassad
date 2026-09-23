@@ -93,10 +93,11 @@ jobs:
           done
           exit $status
 
-      # The fresh runs and comparisons, for reading when the job fails (hashes and verdicts only, never dataset text).
+      # The fresh runs and comparisons, for reading when the job fails (hashes and verdicts only, never dataset text). A
+      # failure before any run leaves nothing to upload; the step that failed already says so.
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: eval-candidate
           path: candidate/
-          if-no-files-found: error
+          if-no-files-found: warn

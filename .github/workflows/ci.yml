@@ -35,6 +35,10 @@ jobs:
       # Category!=Live keeps tests that need TYPESAFE_API_KEY out of this job; the live job below runs them.
       # LogFilePrefix, not LogFileName: each test project runs once per TFM, and a fixed file name makes the net8.0 and net10.0 runs overwrite each other.
       - run: dotnet test --no-build -c Release --filter "Category!=Live" --logger "trx;LogFilePrefix=results" --collect:"XPlat Code Coverage"
+      # The README's numbers section is generated from eval/results/ (roadmap 4.4): regenerate it and fail if a byte changes,
+      # so hand-edited numbers and results files that were re-run without the README (or the other way round) do not merge.
+      - run: dotnet run --project eval/Kassad.Eval --no-build -c Release -- report --in eval/results --update-readme README.md
+      - run: git diff --exit-code -- README.md
       - run: dotnet pack --no-build -c Release -o artifacts
         if: matrix.os == 'ubuntu-latest'
 

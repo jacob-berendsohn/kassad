@@ -1,13 +1,16 @@
 // Evaluation harness: roadmap Phase 4.
 //
 // Contract (do not change without updating Docs/roadmap.md and README "Numbers"):
-//   kassad-eval run    --dataset <name> --policies <file> --out results/<date>-<dataset>.json   (roadmap 4.1)
-//   kassad-eval report --in results/ --format markdown                                            (roadmap 4.2)
+//   kassad-eval run     --dataset <name> --policies <file> --out results/<date>-<dataset>.json   (roadmap 4.1)
+//   kassad-eval report  --in results/ --format markdown [--update-readme README.md]               (roadmap 4.2, 4.4)
+//   kassad-eval compare --baseline results/ --candidate <file> [--tolerance 0.05]                (roadmap 4.4)
 //
 // Datasets are downloaded to eval/data/ by scripts in eval/datasets/ and never committed; eval/README.md documents
 // the JSON that `run` writes, one row per input. Metrics per policy (4.2): precision, recall, F1 at each configured
 // threshold; ROC AUC; calibration bins (predicted probability vs observed positive rate); p50/p95 model latency;
-// input tokens and cost per 1k checks.
+// input tokens and cost per 1k checks. `report --update-readme` writes the same markdown between the README's
+// `<!-- numbers:start -->` / `<!-- numbers:end -->` lines; `compare` joins a fresh run to a committed one over the
+// same rows and exits 4 when a published number moved more than the tolerance (the eval.yml workflow).
 
 using System.CommandLine;
 using Kassad.Eval;

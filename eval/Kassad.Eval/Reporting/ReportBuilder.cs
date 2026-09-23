@@ -230,8 +230,8 @@ internal static class ReportBuilder
         return byLevel.Skip(Severity(level) - 1).Where(t => t is not null).Min();
     }
 
-    /// <summary>0 for allow up to 3 for block; unknown spellings are refused.</summary>
-    private static int Severity(string action) => action switch
+    /// <summary>0 for allow up to 3 for block; unknown spellings are refused. <see cref="RunComparison"/> derives stage outcomes with it.</summary>
+    internal static int Severity(string action) => action switch
     {
         "allow" => 0,
         "flag" => 1,

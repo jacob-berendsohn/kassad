@@ -312,14 +312,16 @@ weekly job at random; one much wider would let a real change through. The measur
 `PROJECT_CONTEXT.md`.
 
 **The `Eval` workflow** (`.github/workflows/eval.yml`) runs `compare` for every dataset: weekly (Monday 06:17 UTC), on
-every `v*` tag, on pull requests that touch `eval/**` or the workflow file (same-repository pull requests only, since
-it needs the `TYPESAFE_API_KEY` secret), and by hand. It downloads the four datasets with their scripts, runs the fixed
-samples the committed runs contain (the full deepset and JailbreakBench sets, the seed-0 stratified 2,000-row samples of
-ToxicChat and VitaminC, about 5,000 checks and ten minutes in all), compares each against `eval/results/`, writes the
-four tables into the job summary and uploads the candidate files and comparisons as an artifact. The job fails when any
-dataset drifts, and it never edits the repository: when drift is real, re-run the datasets locally, commit the new
-results files, regenerate the README and open a pull request, as described above. A dataset that changed upstream shows
-up as rows the baseline lacks or whose text hash differs, and the comparison refuses with the row named.
+every `v*` tag, on pull requests that touch `eval/**` or the workflow file (same-repository pull requests only, and none
+that Dependabot opens, since it needs the `TYPESAFE_API_KEY` secret and GitHub withholds secrets from forks and
+Dependabot-triggered runs alike; a bumped action is exercised by the next weekly run or tag), and by hand. It downloads
+the four datasets with their scripts, runs the fixed samples the committed runs contain (the full deepset and
+JailbreakBench sets, the seed-0 stratified 2,000-row samples of ToxicChat and VitaminC, about 5,000 checks and ten
+minutes in all), compares each against `eval/results/`, writes the four tables into the job summary and uploads the
+candidate files and comparisons as an artifact. The job fails when any dataset drifts, and it never edits the
+repository: when drift is real, re-run the datasets locally, commit the new results files, regenerate the README and
+open a pull request, as described above. A dataset that changed upstream shows up as rows the baseline lacks or whose
+text hash differs, and the comparison refuses with the row named.
 
 ## What we report
 

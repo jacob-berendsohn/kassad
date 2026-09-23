@@ -103,7 +103,7 @@ jobs:
 
       # The fresh runs and comparisons, for reading when the job fails (hashes and verdicts only, never dataset text). A
       # failure before any run leaves nothing to upload; the step that failed already says so.
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: eval-candidate

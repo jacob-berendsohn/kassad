@@ -2,12 +2,12 @@
 
 | | |
 |---|---|
-| **Prompts generated** | `2026-09-22 15:27` (eighteenth in-place refresh of the `2026-09-17 12:27` generation; see the refresh note below) |
-| **Roadmap last modified** | `2026-09-22` per the most recent `Docs/roadmap.md` changelog entry, the 4.3 end state (the changelog records dates only; the line was committed `2026-09-22 15:25`, `c76aa9d`, on this branch) |
+| **Prompts generated** | `2026-09-23 10:36` (nineteenth in-place refresh of the `2026-09-17 12:27` generation; see the refresh note below) |
+| **Roadmap last modified** | `2026-09-23` per the most recent `Docs/roadmap.md` changelog entry, the 4.4 end state that closes Phase 4 (the changelog records dates only; the line was committed `2026-09-23 10:36`, `7e909ee`, on this branch) |
 
 > **Staleness check.** If the roadmap's last-modified timestamp is newer than the prompts-generated timestamp, **this file is stale**. Regenerate it before executing any prompt; the prompts below may not reflect the current roadmap. Do not edit prompts here in place — fix the roadmap and regenerate.
 
-> **Refreshed in place 2026-09-22 15:27** (earlier refreshes 2026-09-17 14:47, 15:34, 16:43, 17:17, 17:28 and 17:49, then 18:23 on the 3.1 branch and 18:26 on the 2.1 branch, which ran in parallel, 19:13 when those two were merged, then 19:42 on the 2.2 branch and 19:47 on the 3.3 branch, which ran in parallel, 19:56 when those two were merged, 20:00 on the 3.3 branch after its CI fix, then 20:35 on the 3.2 branch and 20:44 on the 2.3 branch, which ran in parallel, 21:46 when those two were merged, then 2026-09-18 17:01 on the 2.4 branch and 17:08 on the 3.4 branch, which ran in parallel, and 17:26 when `main` after PR #26 was merged into the 3.4 branch, then 2026-09-18 19:07 on the 4.1 branch and 2026-09-22 14:13 on the 4.2 branch). Between generation (`6892f84`) and this 4.3 branch off `main` after PR #30 (`db46a6e`), the roadmap changed only in two Prerequisites bullets (owner placeholder, then the nuget.org policy, each recorded as done) and its changelog (0.1–0.5, 1.1–1.3, 3.1, 2.1, 2.2, 3.3, 3.2, 2.3, 2.4, 3.4, 4.1, 4.2 and 4.3 end states); the step since `db46a6e` is the single 4.3 changelog line (`c76aa9d`). No sub-phase Goal, Deliverables, Verification or Depends-on line changed, and a script re-checked every prompt below verbatim against the roadmap (21 sub-phases, 0 differences). Header timestamps and the done markers on Prompts 0.1–0.5, 1.1–1.3, 2.1–2.4, 3.1–3.4 and 4.1–4.3 are the only edits since generation. The next roadmap change that touches a sub-phase field needs a full regeneration, not another refresh.
+> **Refreshed in place 2026-09-23 10:36** (earlier refreshes 2026-09-17 14:47, 15:34, 16:43, 17:17, 17:28 and 17:49, then 18:23 on the 3.1 branch and 18:26 on the 2.1 branch, which ran in parallel, 19:13 when those two were merged, then 19:42 on the 2.2 branch and 19:47 on the 3.3 branch, which ran in parallel, 19:56 when those two were merged, 20:00 on the 3.3 branch after its CI fix, then 20:35 on the 3.2 branch and 20:44 on the 2.3 branch, which ran in parallel, 21:46 when those two were merged, then 2026-09-18 17:01 on the 2.4 branch and 17:08 on the 3.4 branch, which ran in parallel, and 17:26 when `main` after PR #26 was merged into the 3.4 branch, then 2026-09-18 19:07 on the 4.1 branch, 2026-09-22 14:13 on the 4.2 branch and 2026-09-22 15:27 on the 4.3 branch). Between generation (`6892f84`) and this 4.4 branch off `main` after PR #31 (`9f6bcaf`), the roadmap changed only in two Prerequisites bullets (owner placeholder, then the nuget.org policy, each recorded as done) and its changelog (0.1–0.5, 1.1–1.3, 3.1, 2.1, 2.2, 3.3, 3.2, 2.3, 2.4, 3.4, 4.1, 4.2, 4.3 and 4.4 end states); the step since `9f6bcaf` is the single 4.4 changelog line (`7e909ee`). No sub-phase Goal, Deliverables, Verification or Depends-on line changed, and a script re-checked every prompt below verbatim against the roadmap (21 sub-phases, 0 differences). Header timestamps and the done markers on Prompts 0.1–0.5, 1.1–1.3, 2.1–2.4, 3.1–3.4 and 4.1–4.4 are the only edits since generation. The next roadmap change that touches a sub-phase field needs a full regeneration, not another refresh.
 
 ## How to use
 
@@ -614,6 +614,8 @@ Phases 0 → 1 → 2 are strictly sequential. Phase 3 and Phase 4 depend on Phas
 **Depends on:** 4.2, 3.1 (grounding helper).
 
 #### Prompt 4.4 — README numbers table and threshold guidance
+
+*Done 2026-09-23; end state recorded in the roadmap changelog. Do not re-run.*
 
 **Session setup.** Effort: `high` — threshold guidance and a drift-tolerance policy for `eval.yml` are judgment calls that end up in the README, which must also regenerate byte-identically.
 

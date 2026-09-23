@@ -6,6 +6,10 @@ Versions come from git tags via MinVer; nothing here is hand-numbered until a ta
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-09-23
+
+First release; it supersedes `0.1.0-preview.1` (2026-09-17), which previewed the release path with the scaffold and never had a section of its own. The entries below record everything since the initial scaffold.
+
 ### Added
 - Repository scaffold: four packages (`Kassad.Abstractions`, `Kassad`, `Kassad.TypeSafe`, `Kassad.AspNetCore`), tests, sample, eval stub, CI and Trusted Publishing release workflow.
 - `Kassad.Abstractions`: `IDecisionModel`, Noul/Choice/Score question and answer records, `Verdict`, `StageResult`, `ErrorPolicy`.
@@ -41,4 +45,5 @@ Versions come from git tags via MinVer; nothing here is hand-numbered until a ta
 - `Kassad.AspNetCore`: `OversizedBodyBehavior = FailOpen` now works in the `AddKassadHandler()` handler. A body is read up to `MaxBodyBytes` plus one byte; one that turns out larger is passed through unevaluated with a warning, the bytes already read ahead of the rest of the stream, where the handler used to buffer the whole body and then throw `InvalidOperationException`. `FailClosed` still answers 413, now without reading past that one byte.
 - Tests: `Kassad.Tests` no longer fails on a busy CI runner. Its one wall-clock test asserted that a 50 ms budget came back within 100 ms, a bound the shared 4-vCPU runners missed three times (up to 945 ms) while the test process itself was idle; the fake model now waits a minute so only the budget can end the call, and the clock checks magnitude only (under 5 s).
 
-[Unreleased]: https://github.com/jacob-berendsohn/kassad/compare/HEAD...HEAD
+[Unreleased]: https://github.com/jacob-berendsohn/kassad/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/jacob-berendsohn/kassad/releases/tag/v0.1.0

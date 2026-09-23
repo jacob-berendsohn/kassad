@@ -11,13 +11,15 @@ The checks are answered by a *System One* decision model, TypeSafe's Jev by defa
 trained to return calibrated probabilities for typed questions instead of generating text.
 Every policy for a stage is batched into one request, so ten checks cost one round trip.
 
-> **Status: pre-release.** The engine, policy format, and TypeSafe client are in place and unit-tested; the
-> middleware and handler are functional and evaluate the user's message out of OpenAI- and Anthropic-shaped
-> bodies; the eval harness runs three inbound datasets and a grounding set end to end, and the
+> **Status: `0.1.0`, first release.** The engine, policy format, and TypeSafe client are in place and unit-tested;
+> the middleware and handler evaluate the user's message out of OpenAI- and Anthropic-shaped bodies and are covered
+> by integration tests; the eval harness runs three inbound datasets and a grounding set end to end, and the
 > [Numbers](#numbers) section below is generated from its committed runs. Read what those numbers do and do not
 > mean before putting Kassad in front of production traffic: they were measured on public single-turn sets with
-> the sample policy file, not on your traffic. See
-> [`Docs/roadmap.md`](https://github.com/jacob-berendsohn/kassad/blob/main/Docs/roadmap.md).
+> the sample policy file, not on your traffic. The public API can still change before `1.0`;
+> [`CHANGELOG.md`](https://github.com/jacob-berendsohn/kassad/blob/main/CHANGELOG.md) records every change and
+> [`Docs/roadmap.md`](https://github.com/jacob-berendsohn/kassad/blob/main/Docs/roadmap.md) is the plan this release
+> followed.
 
 ## Why this exists
 

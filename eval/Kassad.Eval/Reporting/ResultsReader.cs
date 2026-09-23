@@ -122,14 +122,19 @@ internal sealed record ResultsDocument(
     public string FileName { get; init; } = string.Empty;
 }
 
-/// <summary>The fields of a result row the metrics use.</summary>
+/// <summary>
+/// The fields of a result row the metrics use, plus the hashes <c>kassad-eval compare</c> matches rows on (optional
+/// here so that hand-written test documents without them still report; the comparison requires them).
+/// </summary>
 internal sealed record ReportRow(
     string Id,
     int Label,
     double LatencyMs,
     int? InputTokens,
     string? Error,
-    IReadOnlyDictionary<string, ReportVerdict> Verdicts);
+    IReadOnlyDictionary<string, ReportVerdict> Verdicts,
+    string? TextSha256 = null,
+    string? PassageSha256 = null);
 
 /// <summary>The fields of a verdict the metrics use. Answer fields are absent on error verdicts and for other question types.</summary>
 internal sealed record ReportVerdict(

@@ -1,0 +1,103 @@
+name: Eval
+
+# Drift check for the README's numbers (roadmap 4.4). The README table is generated from the runs committed under
+# eval/results/ (CI checks that with `report --update-readme` and `git diff` on every push). This workflow asks the
+# other question, whether those runs still describe the model: it re-runs the harness against the live API on a fixed
+# sample of every dataset (the full deepset and JailbreakBench sets; the seed-0 stratified 2,000-row samples of
+# ToxicChat and VitaminC, which the committed runs contain) and `kassad-eval compare` joins each fresh run to the
+# committed one row by row (same id, same text hash, same label), then compares ROC AUC, precision and recall at every
+# configured level and the share of rows whose verdicts changed. Any number that moves more than the tolerance fails the
+# job (exit 4). Nothing is written back: when drift is real, re-run the four datasets locally, commit the new results
+# files, run `report --update-readme README.md` and open a PR.
+#
+# Tolerance: 0.05, absolute, on every compared number. Re-running the same rows one to five days apart on 2026-09-23,
+# same model release, changed the recorded answer on a quarter to a half of the rows (usually by 0.01, at most 0.1),
+# flipped the stage outcome on 1.2% to 1.5% of them and moved the published rates by about 0.01, 0.023 at worst for a
+# precision over fewer than a hundred rows (the API rounds to two decimals and the model is not deterministic at that
+# decimal); 0.05 is about twice the worst of that noise and still fails on a model release that moves a rate by five
+# points. Latency and cost are not compared: the runner's network is not the committed run's.
+#
+# Runs weekly, on every release tag, on pull requests that touch the harness or this file (so a change here proves
+# itself before it merges; the secret is available to same-repository pull requests), and by hand.
+
+on:
+  schedule:
+    - cron: '17 6 * * 1' # Mondays 06:17 UTC
+  push:
+    tags: ['v*']
+  pull_request:
+    paths:
+      - '.github/workflows/eval.yml'
+      - 'eval/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  POLICIES: samples/Kassad.Sample.ChatApi/kassad.policies.json
+  TOLERANCE: '0.05'
+
+jobs:
+  drift:
+    name: drift-check
+    # Needs TYPESAFE_API_KEY, so only the owner's repository and never a fork's pull request (the secret is absent there).
+    if: github.repository_owner == 'jacob-berendsohn' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - run: dotnet build eval/Kassad.Eval -c Release
+
+      # ToxicChat is 102 pages two seconds apart (about four minutes); the others take seconds.
+      - name: Download the datasets
+        run: |
+          eval/datasets/deepset-prompt-injections.sh
+          eval/datasets/jailbreakbench-behaviors.sh
+          eval/datasets/vitaminc.sh
+          eval/datasets/toxicchat.sh
+
+      # Exit 3 (the run completed but some rows carry a model error) still leaves a file; compare leaves those rows out.
+      - name: Run the fixed samples
+        env:
+          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+        run: |
+          set -u
+          run() {
+            dotnet run --project eval/Kassad.Eval -c Release --no-build -- run --policies "$POLICIES" "$@" || [ $? -eq 3 ]
+          }
+          run --dataset deepset --out candidate/deepset.json
+          run --dataset jailbreakbench --out candidate/jailbreakbench.json
+          run --dataset toxicchat --sample 2000 --seed 0 --out candidate/toxicchat.json
+          run --dataset vitaminc --sample 2000 --seed 0 --out candidate/vitaminc.json
+
+      # Every dataset is compared even after one has drifted, so the summary shows all four; the step fails if any did.
+      - name: Compare with the committed runs
+        run: |
+          set +e
+          status=0
+          for dataset in deepset jailbreakbench toxicchat vitaminc; do
+            dotnet run --project eval/Kassad.Eval -c Release --no-build -- compare --baseline eval/results --candidate "candidate/$dataset.json" --tolerance "$TOLERANCE" > "candidate/$dataset.compare.md"
+            code=$?
+            cat "candidate/$dataset.compare.md"
+            cat "candidate/$dataset.compare.md" >> "$GITHUB_STEP_SUMMARY"
+            if [ "$code" -ne 0 ]; then status=$code; fi
+          done
+          exit $status
+
+      # The fresh runs and comparisons, for reading when the job fails (hashes and verdicts only, never dataset text). A
+      # failure before any run leaves nothing to upload; the step that failed already says so.
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: eval-candidate
+          path: candidate/
+          if-no-files-found: warn

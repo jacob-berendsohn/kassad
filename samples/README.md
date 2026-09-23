@@ -24,8 +24,10 @@ two inbound checks, `prompt_injection` (a noul question, blocks at p(yes) ≥ 0.
 question, blocks when it picks `prohibited` with confidence ≥ 0.70), two outbound checks, `sensitive_data_leak` (noul,
 blocks at p(yes) ≥ 0.80) and `harm_severity` (a four-level score, blocks at 2.6), and, since roadmap 3.1, two
 `tool_call` and two `grounding` checks written against the field names those stages' states expose (`user_intent`,
-`tool_name`, `tool_schema`, `arguments`; `claim`, `source_passage`, `source_id`). The thresholds are illustrative. No
-eval has been run yet, so do not read them as recommendations.
+`tool_name`, `tool_schema`, `arguments`; `claim`, `source_passage`, `source_id`). The inbound and grounding thresholds
+were measured by the eval harness (roadmap 4.4): the root README's Numbers section has the table, and the policy
+file's comments say what each cut point bought and cost on those sets. The outbound and tool-call ones are placeholders.
+None is a recommendation for your traffic.
 
 ### Run it
 

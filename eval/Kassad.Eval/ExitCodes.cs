@@ -16,6 +16,9 @@ internal static class ExitCodes
     /// <summary>The run completed and the file was written, but some rows carry a model error instead of an answer.</summary>
     public const int CompletedWithErrors = 3;
 
+    /// <summary>compare: the comparison was printed and at least one number moved more than the tolerance.</summary>
+    public const int Drifted = 4;
+
     /// <summary>The run was cancelled. The file holds the rows evaluated so far and says it was interrupted.</summary>
     public const int Interrupted = 130;
 }

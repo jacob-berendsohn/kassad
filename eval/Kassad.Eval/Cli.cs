@@ -8,8 +8,10 @@ namespace Kassad.Eval;
 
 /// <summary>
 /// The <c>kassad-eval</c> command line. <c>run</c> evaluates a policy file over a labeled dataset and writes one row
-/// per input (roadmap 4.1); <c>report</c> turns results files into the README numbers (roadmap 4.2).
-/// Built with a real <see cref="TypeSafeClient"/> by default; tests hand in a model and writers of their own.
+/// per input (roadmap 4.1); <c>report</c> turns results files into the README numbers (roadmap 4.2) and, with
+/// <c>--update-readme</c>, writes them into the README (roadmap 4.4); <c>compare</c> checks a fresh run against a
+/// committed one for drift (roadmap 4.4). Built with a real <see cref="TypeSafeClient"/> by default; tests hand in a
+/// model and writers of their own.
 /// </summary>
 internal static class Cli
 {
@@ -22,6 +24,7 @@ internal static class Cli
         var root = new RootCommand("Kassad evaluation harness: runs policies over labeled datasets and reports the numbers.");
         root.Add(BuildRun(model, stdout, stderr));
         root.Add(BuildReport(stdout, stderr));
+        root.Add(BuildCompare(stdout, stderr));
         return root;
     }
 
@@ -136,25 +139,81 @@ internal static class Cli
         };
         format.AcceptOnlyFromAmong("markdown");
 
+        var updateReadme = new Option<FileInfo?>("--update-readme")
+        {
+            Description = $"Write the report into this file between its '{ReadmeUpdater.StartMarker}' and '{ReadmeUpdater.EndMarker}' lines instead of printing it. Running it twice changes nothing.",
+        };
+
         var report = new Command("report", "Turn results files into the README numbers: precision, recall and F1 per threshold, ROC AUC, calibration, latency and cost.")
         {
             input,
             format,
+            updateReadme,
         };
 
         report.SetAction((parseResult, cancellationToken) =>
-            ReportAsync(parseResult.GetRequiredValue(input).ToString(), stdout, stderr, cancellationToken));
+            ReportAsync(parseResult.GetRequiredValue(input).ToString(), parseResult.GetValue(updateReadme)?.ToString(), stdout, stderr, cancellationToken));
 
         return report;
     }
 
-    private static async Task<int> ReportAsync(string directory, TextWriter stdout, TextWriter stderr, CancellationToken cancellationToken)
+    private static Command BuildCompare(TextWriter stdout, TextWriter stderr)
+    {
+        var baseline = new Option<FileSystemInfo>("--baseline")
+        {
+            Description = "The committed run to compare against: a results file, or a directory of them, where the newest file (by name) for the candidate's dataset is used.",
+            Required = true,
+        };
+
+        var candidate = new Option<FileInfo>("--candidate")
+        {
+            Description = "The fresh results file, a run over the same rows or a sample of them.",
+            Required = true,
+        };
+
+        var tolerance = new Option<double>("--tolerance")
+        {
+            Description = "Largest absolute move any compared number may make before the exit code says drift.",
+            DefaultValueFactory = _ => RunComparison.DefaultTolerance,
+        };
+        tolerance.Validators.Add(result =>
+        {
+            var value = result.GetValueOrDefault<double>();
+            if (!(value >= 0 && value <= 1))
+            {
+                result.AddError("--tolerance must be between 0 and 1.");
+            }
+        });
+
+        var compare = new Command("compare", "Compare a fresh run with a committed one over the same rows: ROC AUC, precision and recall at each configured level, and the share of rows whose verdicts changed; exit 4 when any moves more than the tolerance.")
+        {
+            baseline,
+            candidate,
+            tolerance,
+        };
+
+        compare.SetAction((parseResult, cancellationToken) =>
+            CompareAsync(parseResult.GetRequiredValue(baseline).ToString(), parseResult.GetRequiredValue(candidate).ToString(), parseResult.GetRequiredValue(tolerance), stdout, stderr, cancellationToken));
+
+        return compare;
+    }
+
+    private static async Task<int> ReportAsync(string directory, string? readmePath, TextWriter stdout, TextWriter stderr, CancellationToken cancellationToken)
     {
         try
         {
             var documents = await ResultsReader.ReadDirectoryAsync(directory, cancellationToken).ConfigureAwait(false);
             var markdown = MarkdownReport.Render(documents.Select(ReportBuilder.Build).ToArray());
-            await stdout.WriteAsync(markdown).ConfigureAwait(false);
+            if (readmePath is null)
+            {
+                await stdout.WriteAsync(markdown).ConfigureAwait(false);
+                return ExitCodes.Ok;
+            }
+
+            var changed = await ReadmeUpdater.UpdateFileAsync(readmePath, markdown, cancellationToken).ConfigureAwait(false);
+            await stderr.WriteLineAsync(changed
+                ? $"kassad-eval: {readmePath}: numbers section rewritten from {documents.Count} results {(documents.Count == 1 ? "file" : "files")}"
+                : $"kassad-eval: {readmePath}: numbers section already up to date").ConfigureAwait(false);
             return ExitCodes.Ok;
         }
         catch (EvalUsageException ex)
@@ -162,6 +221,41 @@ internal static class Cli
             await stderr.WriteLineAsync($"kassad-eval: {ex.Message}").ConfigureAwait(false);
             return ExitCodes.Fatal;
         }
+    }
+
+    private static async Task<int> CompareAsync(string baselinePath, string candidatePath, double tolerance, TextWriter stdout, TextWriter stderr, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var candidate = await ResultsReader.ReadFileAsync(candidatePath, cancellationToken).ConfigureAwait(false);
+            var baseline = await ReadBaselineAsync(baselinePath, candidate.Dataset.Name, cancellationToken).ConfigureAwait(false);
+            var result = RunComparison.Compare(baseline, candidate, tolerance);
+            await stdout.WriteAsync(result.ToMarkdown()).ConfigureAwait(false);
+            return result.WithinTolerance ? ExitCodes.Ok : ExitCodes.Drifted;
+        }
+        catch (EvalUsageException ex)
+        {
+            await stderr.WriteLineAsync($"kassad-eval: {ex.Message}").ConfigureAwait(false);
+            return ExitCodes.Fatal;
+        }
+    }
+
+    /// <summary>A file as it is; for a directory, the newest results file (ordinal file-name order, so dated names sort by date) whose dataset is <paramref name="dataset"/>.</summary>
+    private static async Task<ResultsDocument> ReadBaselineAsync(string path, string dataset, CancellationToken cancellationToken)
+    {
+        if (!Directory.Exists(path))
+        {
+            if (!File.Exists(path))
+            {
+                throw new EvalUsageException($"{path}: no such results file or directory to compare against.");
+            }
+
+            return await ResultsReader.ReadFileAsync(path, cancellationToken).ConfigureAwait(false);
+        }
+
+        var documents = await ResultsReader.ReadDirectoryAsync(path, cancellationToken).ConfigureAwait(false);
+        return documents.LastOrDefault(d => d.Dataset.Name == dataset)
+            ?? throw new EvalUsageException($"{path}: no results file for dataset '{dataset}' to compare against.");
     }
 
     private static async Task<int> RunAsync(RunSettings settings, IDecisionModel? model, TextWriter stdout, TextWriter stderr, CancellationToken cancellationToken)

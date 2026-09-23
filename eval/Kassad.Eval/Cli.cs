@@ -245,6 +245,11 @@ internal static class Cli
     {
         if (!Directory.Exists(path))
         {
+            if (!File.Exists(path))
+            {
+                throw new EvalUsageException($"{path}: no such results file or directory to compare against.");
+            }
+
             return await ResultsReader.ReadFileAsync(path, cancellationToken).ConfigureAwait(false);
         }
 

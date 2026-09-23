@@ -16,8 +16,9 @@ internal static class RunComparison
     /// <summary>
     /// Largest absolute move any number may make. Re-running the same rows one to five days apart on 2026-09-23, same
     /// model release, changed the answer on a quarter to a half of the rows (usually by 0.01, at most 0.1), flipped the
-    /// stage outcome on 1.2% to 1.5% of them and moved the published rates by at most 0.011, so 0.05 sits about five
-    /// times above that noise while a change in the model that moves a published rate by five points still fails.
+    /// stage outcome on 1.2% to 1.5% of them and moved the published rates by about 0.01, 0.023 at worst for a precision
+    /// over fewer than a hundred rows, so 0.05 sits about twice above the worst of that noise while a change in the
+    /// model that moves a published rate by five points still fails.
     /// </summary>
     public const double DefaultTolerance = 0.05;
 

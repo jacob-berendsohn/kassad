@@ -181,6 +181,18 @@ public sealed class CliReadmeAndCompareTests : IDisposable
     }
 
     [Fact]
+    public async Task Compare_with_a_missing_baseline_exits_1_and_names_it()
+    {
+        _dir.WithDeepset(DeepsetRows.Both);
+        var candidate = await RunDeepsetAsync(Answering(), "candidate.json");
+
+        var exit = await InvokeAsync(Answering(), "compare", "--baseline", Path.Combine(_dir.Root, "results-elsewhere"), "--candidate", candidate);
+
+        Assert.Equal(ExitCodes.Fatal, exit);
+        Assert.Contains("results-elsewhere: no such results file or directory", _stderr.ToString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Compare_refuses_runs_that_are_not_over_the_same_rows()
     {
         _dir.WithDeepset(DeepsetRows.Both);

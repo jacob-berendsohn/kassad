@@ -18,7 +18,8 @@ name: Eval
 # points. Latency and cost are not compared: the runner's network is not the committed run's.
 #
 # Runs weekly, on every release tag, on pull requests that touch the harness or this file (so a change here proves
-# itself before it merges; the secret is available to same-repository pull requests), and by hand.
+# itself before it merges; the secret is available to same-repository pull requests, except the ones Dependabot opens),
+# and by hand.
 
 on:
   schedule:
@@ -44,8 +45,15 @@ env:
 jobs:
   drift:
     name: drift-check
-    # Needs TYPESAFE_API_KEY, so only the owner's repository and never a fork's pull request (the secret is absent there).
-    if: github.repository_owner == 'jacob-berendsohn' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    # Needs TYPESAFE_API_KEY, so only the owner's repository, never a fork's pull request and never a run Dependabot
+    # triggered: GitHub withholds repository secrets from both. Dependabot's branches live in this repository, so the
+    # fork check alone let its action bumps (which edit this file) through to fail at "Run the fixed samples" with
+    # "No TypeSafe API key" (PRs #1 to #3, 2026-09-23). A re-run keeps the original actor and its privileges, so it is
+    # skipped as well; the bumped action is exercised by the next weekly run or tag.
+    if: >-
+      github.repository_owner == 'jacob-berendsohn'
+      && github.actor != 'dependabot[bot]'
+      && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:

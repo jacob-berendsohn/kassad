@@ -30,7 +30,12 @@
     <RepositoryUrl>https://github.com/jacob-berendsohn/kassad</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageTags>llm;guardrails;ai-safety;prompt-injection;typesafe;jev;aspnetcore;middleware</PackageTags>
+    <!--
+      Base tags for every package; each csproj appends its own as $(PackageTags);... . nuget.org search matches on
+      tags, so the vendor and model names sit beside the problem names. Like every nuspec field, tags are immutable
+      per published version: 0.1.0 keeps the set it shipped with, and a change here reaches the next version.
+    -->
+    <PackageTags>TypeSafe;Jev;SystemOne;LLM;guardrails;AI-safety;prompt-injection;jailbreak;grounding</PackageTags>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>

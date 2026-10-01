@@ -17,6 +17,12 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="All" />
-    <None Include="$(MSBuildThisFileDirectory)../README.md" Pack="true" PackagePath="\" Visible="false" />
+    <!--
+      Each package carries its own README.md (what it is, install, the Quick start lines that matter, one link back
+      to the repository README), not the repository README: nuget.org renders the packed file as the package page,
+      and the root README's generated Numbers block is three hundred lines of tables that belong on GitHub, not
+      there. PackageReadmeFile in the root props names the file.
+    -->
+    <None Include="$(MSBuildProjectDirectory)/README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 </Project>

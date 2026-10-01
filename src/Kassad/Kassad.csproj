@@ -2,7 +2,8 @@
 
   <PropertyGroup>
     <RootNamespace>Kassad</RootNamespace>
-    <Description>Calibrated guardrails for LLM applications. Declare policies as data, get confidence-gated Allow/Flag/Review/Block verdicts from a System One decision model (TypeSafe Jev or any IDecisionModel), and keep control flow in your code. This is the engine; pair with Kassad.TypeSafe and Kassad.AspNetCore.</Description>
+    <Description>The Kassad engine: policy file loader with fail-fast validation, IGuardrailEngine, verdict resolution, structured logging.</Description>
+    <PackageTags>$(PackageTags);policy;engine</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>

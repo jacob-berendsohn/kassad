@@ -2,8 +2,8 @@
 
   <PropertyGroup>
     <RootNamespace>Kassad.AspNetCore</RootNamespace>
-    <Description>ASP.NET Core integration for Kassad: inbound middleware for your own LLM-facing endpoints, and a DelegatingHandler that screens prompts and completions on the HttpClient you use to call OpenAI, Anthropic, or Azure OpenAI. Zero changes to application code.</Description>
-    <PackageTags>$(PackageTags);delegatinghandler;httpclient</PackageTags>
+    <Description>Kassad for ASP.NET Core: inbound middleware for your endpoints and a DelegatingHandler for the HttpClient that talks to your LLM provider.</Description>
+    <PackageTags>$(PackageTags);aspnetcore;middleware;DelegatingHandler;httpclient</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>

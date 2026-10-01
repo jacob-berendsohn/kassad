@@ -2,8 +2,8 @@
 
   <PropertyGroup>
     <RootNamespace>Kassad.TypeSafe</RootNamespace>
-    <Description>.NET client for TypeSafe's System One API (Jev). Typed Noul/Choice/Score questions in, calibrated probabilities out. Implements Kassad.IDecisionModel so it plugs straight into the Kassad guardrail engine, and is usable standalone.</Description>
-    <PackageTags>$(PackageTags);client;sdk;system-one</PackageTags>
+    <Description>Kassad's .NET client for TypeSafe's POST /v1/systemone; usable on its own and implements IDecisionModel.</Description>
+    <PackageTags>$(PackageTags);client;sdk</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>

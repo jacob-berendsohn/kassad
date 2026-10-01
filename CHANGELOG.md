@@ -6,6 +6,9 @@ Versions come from git tags via MinVer; nothing here is hand-numbered until a ta
 
 ## [Unreleased]
 
+### Changed
+- Packages: each `.nupkg` now carries its own `README.md` (what the package is, how to install it, the Quick start lines that apply, one link to the repository README for the policy reference and the Numbers section) in place of the repository README, whose generated Numbers tables made it an unsuitable nuget.org package page. Descriptions are the one-sentence "What it is" column of the README's Packages table. Tags are `TypeSafe Jev SystemOne LLM guardrails AI-safety prompt-injection jailbreak grounding` plus, per package, `aspnetcore middleware DelegatingHandler httpclient`, `client sdk`, `policy engine` or `abstractions`. nuspec metadata is immutable per published version, so `0.1.0` keeps what it shipped with; this reaches nuget.org with the next published version.
+
 ### Fixed
 - Eval: the `Eval` workflow's drift check no longer runs on pull requests that Dependabot opens. GitHub withholds repository secrets from Dependabot-triggered runs, so every bump of an action the workflow uses (each edits `.github/workflows/eval.yml`, one of the workflow's `pull_request` paths) got past the same-repository gate and failed at "Run the fixed samples" with `kassad-eval: No TypeSafe API key` instead of skipping. The `drift-check` job now also requires `github.actor != 'dependabot[bot]'`; a bumped action is exercised by the next weekly or tag run.
 

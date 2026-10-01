@@ -2,7 +2,8 @@
 
   <PropertyGroup>
     <RootNamespace>Kassad</RootNamespace>
-    <Description>Contracts for Kassad: the IDecisionModel interface, the Noul/Choice/Score question and answer primitives, and the Verdict types. Reference this to implement a decision model or consume verdicts without taking a dependency on the engine.</Description>
+    <Description>Kassad contracts: IDecisionModel, the Noul/Choice/Score primitives and Verdict; reference this to implement a model or consume verdicts.</Description>
+    <PackageTags>$(PackageTags);abstractions</PackageTags>
   </PropertyGroup>
 
 </Project>

@@ -125,7 +125,7 @@ the repository's current name (checked 2026-10-01).
   `- [Name](URL) - Industry: one-sentence description of the Jev use case.`; each entry lives in exactly one category,
   the one closest to its direct application domain; excluded are generic classifiers that do not use Jev, pure theory,
   launch hype with no working artifact, long write-ups and private or vague sources; entries are listed in the order
-  they were added, not alphabetically, so the new line goes after the section's last bullet (`jev-secret-detection` on
+  they were added, not alphabetically, so the new line goes after the section's last bullet (`laya-browser-guard` on
   2026-10-01; check before running the command). "Curation is not endorsement."
 - **Entry** (save as `kassad-entry.md`, one line):
 
@@ -151,7 +151,7 @@ the repository's current name (checked 2026-10-01).
   gh repo fork v-modal/awesome-jev-tools --clone --default-branch-only
   cd awesome-jev-tools
   git checkout -b add-kassad
-  sed -i '/^- .jev-secret-detection.(/r kassad-entry.md' README.md
+  sed -i '/^- .laya-browser-guard.(/r kassad-entry.md' README.md
   git diff
   git add README.md
   git commit -m "Add Kassad to Verification & Guardrails"

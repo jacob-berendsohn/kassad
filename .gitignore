@@ -436,3 +436,6 @@ artifacts/
 *.snupkg
 .env
 eval/data/
+
+# Personal outreach drafts (awesome-list entries, announcements, submission commands): working notes, not repository documentation.
+Docs/outreach/

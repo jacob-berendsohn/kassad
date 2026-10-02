@@ -6,7 +6,6 @@ This directory holds the project's reference documents that are not source code:
 
 - `specs/` — Feature specifications, design documents, migration plans. Living documents; update them in place.
 - `research/` — Third-party API documentation, comparison tables, evaluations of alternatives, anything answering "what are our options."
-- `outreach/` — Text written for readers outside the repository: awesome-list entries, announcement drafts, the submission commands for each, and the facts they rest on. Drafts stay here until they are submitted; record where each one went.
 
 ## Conventions
 
@@ -34,4 +33,3 @@ This directory holds the project's reference documents that are not source code:
 - `specs/streaming-evaluation.md` — design note: how a later version evaluates `text/event-stream` responses; evaluate-on-complete, chunked windows and post-hoc compared, the recommendation with its latency/safety trade-off, and the open questions (roadmap 3.4).
 - `research/typesafe-api-notes.md` — System One API facts with source URLs, plus what the wire actually returned when the test fixtures were recorded (roadmap 0.3).
 - `research/eval-datasets.md` — the public datasets the eval harness runs (deepset, JailbreakBench behaviors, ToxicChat, VitaminC): what each label means, licenses, how rows become states, and the grounding-set comparison and choice (roadmap 4.3).
-- `outreach/awesome-lists-and-announcement.md` — drafted, not submitted: the entries for the three awesome lists with their fork, branch and pull-request commands, the Discord announcement, and the release and nuspec facts behind them (2026-10-01).

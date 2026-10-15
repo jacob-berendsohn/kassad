@@ -63,7 +63,7 @@
     Latest stable release as of 2026-09-18 (the 3.0 line was preview-only that day).
   -->
   <ItemGroup>
-    <PackageVersion Include="System.CommandLine" Version="2.0.12" />
+    <PackageVersion Include="System.CommandLine" Version="2.0.13" />
   </ItemGroup>
 
 </Project>

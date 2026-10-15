@@ -50,7 +50,7 @@
     Latest stable releases as of 2026-09-17.
   -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
-    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.31" />
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.32" />
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.Testing" Version="8.10.0" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' != 'net8.0'">
